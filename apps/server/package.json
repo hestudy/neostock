@@ -8,6 +8,10 @@
 		"compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
 		"dev": "bun run --hot src/index.ts",
 		"start": "bun run dist/index.js",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"lint": "eslint . --ext ts,js --report-unused-disable-directives --max-warnings 0",
+		"lint:fix": "eslint . --ext ts,js --fix",
 		"db:local": "turso dev --db-file local.db",
 		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio",
@@ -26,9 +30,13 @@
 		"better-auth": "^1.3.4"
 	},
 	"devDependencies": {
+		"@eslint/js": "^9.33.0",
+		"@types/bun": "^1.2.20",
+		"better-sqlite3": "^12.2.0",
+		"drizzle-kit": "^0.31.2",
+		"eslint": "^9.33.0",
 		"tsdown": "^0.12.9",
 		"typescript": "^5.8.2",
-		"@types/bun": "^1.2.6",
-		"drizzle-kit": "^0.31.2"
+		"typescript-eslint": "^8.40.0"
 	}
 }

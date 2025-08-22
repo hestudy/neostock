@@ -9,6 +9,13 @@
 		"dev": "turbo dev",
 		"build": "turbo build",
 		"check-types": "turbo check-types",
+		"test": "turbo test",
+		"test:coverage": "turbo test:coverage",
+		"test:e2e": "playwright test",
+		"test:e2e:ui": "playwright test --ui",
+		"test:e2e:report": "playwright show-report",
+		"lint": "turbo lint",
+		"lint:fix": "turbo lint:fix",
 		"dev:native": "turbo -F native dev",
 		"dev:web": "turbo -F web dev",
 		"dev:server": "turbo -F server dev",
@@ -19,6 +26,8 @@
 	},
 	"dependencies": {},
 	"devDependencies": {
+		"@playwright/test": "^1.55.0",
+		"playwright": "^1.55.0",
 		"turbo": "^2.5.4"
 	},
 	"packageManager": "bun@1.2.18"
