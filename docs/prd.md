@@ -25,12 +25,12 @@ neostock 是一个现代化的全栈 TypeScript 应用程序，基于 Better-T-S
 **可用文档**:
 
 - [x] Tech Stack 文档（来自 README.md）
-- [ ] Source Tree/架构文档
-- [ ] 编码标准文档
-- [ ] API 文档
-- [ ] 外部 API 文档
-- [ ] UX/UI 指导原则
-- [ ] 技术债务文档
+- [x] Source Tree/架构文档（docs/architecture/ 目录）
+- [x] 编码标准文档（docs/architecture/技术债务和已知问题.md）
+- [x] API 文档（docs/architecture/数据模型和-api.md）
+- [ ] 外部 API 文档（待 Story 1.2 完成）
+- [ ] UX/UI 指导原则（基于现有 shadcn/ui 规范）
+- [x] 技术债务文档（docs/architecture/技术债务和已知问题.md）
 
 ### 增强范围定义
 
