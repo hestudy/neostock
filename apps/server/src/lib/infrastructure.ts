@@ -426,9 +426,34 @@ export class InfrastructureManager {
   }
 
   private generateConfigHash(config: InfraConfig): string {
-    // 对配置进行排序的JSON序列化以确保一致的哈希
-    const sortedConfig = this.sortObjectKeys(config);
-    return Buffer.from(JSON.stringify(sortedConfig)).toString('base64').substring(0, 16);
+    // 对配置进行深度排序的JSON序列化以确保一致的哈希
+    // 但保留数组顺序以检测配置更改
+    const sortedConfig = this.sortObjectKeysPreservingArrays(config);
+    const configStr = JSON.stringify(sortedConfig);
+    
+    // 使用简单的哈希算法生成更可靠的哈希值
+    let hash = 0;
+    for (let i = 0; i < configStr.length; i++) {
+      const char = configStr.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 转为32位整数
+    }
+    return hash.toString(36);
+  }
+
+  private sortObjectKeysPreservingArrays(obj: unknown): unknown {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      // 保留数组顺序以检测配置更改
+      return obj.map(item => this.sortObjectKeysPreservingArrays(item));
+    }
+    const sorted: Record<string, unknown> = {};
+    Object.keys(obj as Record<string, unknown>).sort().forEach(key => {
+      sorted[key] = this.sortObjectKeysPreservingArrays((obj as Record<string, unknown>)[key]);
+    });
+    return sorted;
   }
 
   private sortObjectKeys(obj: unknown): unknown {

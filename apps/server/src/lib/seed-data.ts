@@ -78,6 +78,7 @@ export class SeedDataManager {
         // 检查超时
         if (Date.now() - startTime > this.maxImportTime) {
           result.errorDetails!.push(`Import timeout exceeded ${this.maxImportTime}ms`);
+          result.errors += 1;
           break;
         }
       }
@@ -221,8 +222,9 @@ export class SeedDataManager {
       duration: 0
     };
 
-    // 模拟处理时间
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // 模拟处理时间 (根据批次大小调整时间以便超时测试更可靠)
+    const processingTime = Math.max(10, batch.length / 100);
+    await new Promise(resolve => setTimeout(resolve, processingTime));
     
     return result;
   }
