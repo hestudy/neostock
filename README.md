@@ -4,6 +4,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 
 ## Features
 
+### 核心技术栈
 - **TypeScript** - For type safety and improved developer experience
 - **TanStack Router** - File-based routing with full type safety
 - **TailwindCSS** - Utility-first CSS for rapid UI development
@@ -15,6 +16,14 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **SQLite/Turso** - Database engine
 - **Authentication** - Email & password authentication with Better Auth
 - **Turborepo** - Optimized monorepo build system
+
+### 基础设施功能
+- **灾难恢复系统** - 完整的备份恢复策略，RTO<1小时，RPO<15分钟
+- **监控系统** - 系统健康检查、性能指标监控、告警机制
+- **安全管理** - API密钥管理、安全扫描、访问审计
+- **基础设施即代码** - 环境配置管理、一键部署、版本化管理
+- **质量门控** - 自动化测试、代码检查、部署验证
+- **种子数据管理** - A股基础数据导入和验证
 
 ## Getting Started
 
@@ -63,11 +72,29 @@ neostock/
 
 ## Available Scripts
 
+### 开发和构建
 - `bun dev`: Start all applications in development mode
 - `bun build`: Build all applications
 - `bun dev:web`: Start only the web application
 - `bun dev:server`: Start only the server
 - `bun check-types`: Check TypeScript types across all apps
+- `bun test`: Run all tests
+- `bun test:coverage`: Run tests with coverage report
+- `bun test:e2e`: Run end-to-end tests with Playwright
+
+### 数据库管理
 - `bun db:push`: Push schema changes to database
 - `bun db:studio`: Open database studio UI
+- `bun db:generate`: Generate database migrations
+- `bun db:migrate`: Apply database migrations
 - `cd apps/server && bun db:local`: Start the local SQLite database
+
+### 代码质量
+- `bun lint`: Run ESLint on all packages
+- `bun lint:fix`: Fix auto-fixable ESLint issues
+
+### 质量门控和部署
+- `cd apps/server && bun run docs:validate`: Validate documentation
+- `cd apps/server && bun run quality:gate`: Run quality gate checks
+- `cd apps/server && bun run security:gate`: Run security gate checks  
+- `cd apps/server && bun run pre-deploy`: Pre-deployment verification
