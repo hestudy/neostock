@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from "vitest";
 import { HealthMonitor } from '../../lib/monitoring';
 
 describe('Health Monitoring System', () => {

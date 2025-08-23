@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from "vitest";
 import { DisasterRecoveryManager, type BackupConfig } from '../../lib/disaster-recovery';
 
 describe('Disaster Recovery and Backup Management', () => {

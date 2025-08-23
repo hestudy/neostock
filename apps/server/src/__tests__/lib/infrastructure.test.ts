@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from "vitest";
 import { InfrastructureManager, type InfraConfig } from '../../lib/infrastructure';
 
 describe('Infrastructure as Code Management', () => {

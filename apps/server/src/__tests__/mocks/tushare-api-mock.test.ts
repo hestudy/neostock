@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from "vitest";
 import { TushareAPIMock, FailureScenario } from '../../mocks/tushare-api-mock';
 
 describe('Tushare API Mock System', () => {
