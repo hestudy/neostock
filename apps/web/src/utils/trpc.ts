@@ -1,6 +1,4 @@
-// 在CI环境中暂时使用unknown类型避免路径问题
-// TODO: 改进monorepo的类型共享机制
-type AppRouter = unknown;
+import type { AppRouter } from '../../../server/src/routers/index';
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
