@@ -1,4 +1,4 @@
-export interface TushareResponse<T = any> {
+export interface TushareResponse {
   code: number;
   msg: string;
   data: {
@@ -186,7 +186,7 @@ export class TushareAPIMock {
     name?: string;
     market?: string;
     list_status?: string;
-  } = {}): Promise<TushareResponse<StockBasicInfo>> {
+  } = {}): Promise<TushareResponse> {
     this.requestCount++;
 
     if (this.failureMode) {
@@ -218,7 +218,7 @@ export class TushareAPIMock {
       filtered = filtered.filter(stock => stock.ts_code === params.ts_code);
     }
     if (params.name) {
-      filtered = filtered.filter(stock => stock.name.includes(params.name));
+      filtered = filtered.filter(stock => stock.name.includes(params.name!));
     }
     if (params.market) {
       filtered = filtered.filter(stock => stock.market === params.market);
@@ -243,7 +243,7 @@ export class TushareAPIMock {
     trade_date?: string;
     start_date?: string;
     end_date?: string;
-  }): Promise<TushareResponse<DailyData>> {
+  }): Promise<TushareResponse> {
     this.requestCount++;
 
     if (this.failureMode) {
@@ -357,7 +357,7 @@ export class TushareAPIMock {
       }
       
       return false;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

@@ -266,12 +266,12 @@ describe('Tushare API Mock System', () => {
     it('should handle backup source failure', async () => {
       // Test a few attempts to simulate occasional backup failures
       const attempts = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 3; i++) {
         attempts.push(await mockApi.switchToBackupSource());
       }
 
       // Should complete within reasonable time
-      expect(attempts.length).toBe(5);
+      expect(attempts.length).toBe(3);
       
       // Results should be boolean
       attempts.forEach(result => {

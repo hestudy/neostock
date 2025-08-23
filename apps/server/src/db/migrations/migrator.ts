@@ -1,30 +1,91 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import { sql } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import path from 'path';
+import { Database } from 'bun:sqlite';
 
 export interface Migration {
   id: string;
   name: string;
-  up: (db: ReturnType<typeof drizzle>) => Promise<void>;
-  down: (db: ReturnType<typeof drizzle>) => Promise<void>;
+  up: (db: DatabaseWrapper) => Promise<void>;
+  down: (db: DatabaseWrapper) => Promise<void>;
+}
+
+export class DatabaseWrapper {
+  constructor(private db: Database) {}
+
+  async run(query: any): Promise<void> {
+    if (typeof query === 'string') {
+      this.db.run(query);
+    } else if (query && query.queryChunks && Array.isArray(query.queryChunks)) {
+      // Handle drizzle SQL template (including nested sql.raw())
+      const sqlString = this.buildSqlString(query);
+      this.db.run(sqlString);
+    } else {
+      console.error('Unknown query format:', query);
+      throw new Error('Invalid query format');
+    }
+  }
+
+  private buildSqlString(query: any): string {
+    if (!query.queryChunks || !Array.isArray(query.queryChunks)) {
+      return '';
+    }
+    
+    const result: string[] = [];
+    
+    for (let i = 0; i < query.queryChunks.length; i++) {
+      const chunk = query.queryChunks[i];
+      
+      if (typeof chunk === 'string') {
+        result.push(chunk);
+      } else if (chunk && chunk.value) {
+        if (Array.isArray(chunk.value)) {
+          result.push(chunk.value.join(''));
+        } else if (typeof chunk.value === 'string') {
+          result.push(chunk.value);
+        }
+      } else if (chunk && chunk.queryChunks && Array.isArray(chunk.queryChunks)) {
+        // Recursively handle nested sql.raw()
+        result.push(this.buildSqlString(chunk));
+      }
+      
+      // Handle parameters/values between chunks
+      if (query.values && query.values[i] !== undefined) {
+        result.push(String(query.values[i]));
+      }
+    }
+    
+    return result.join('');
+  }
+
+  prepare(query: string) {
+    return this.db.prepare(query);
+  }
+
+  exec(query: string): void {
+    this.db.exec(query);
+  }
+
+  close(): void {
+    this.db.close();
+  }
 }
 
 export class DatabaseMigrator {
-  private db: ReturnType<typeof drizzle>;
-  private sqlite: Database.Database;
+  private db: Database;
+  private wrapper: DatabaseWrapper;
   private migrations: Migration[] = [];
+  private batchSize: number = 5;
+  private onProgress?: (progress: { completed: number; total: number; current: string }) => void;
 
-  constructor(databasePath: string = ':memory:') {
-    this.sqlite = new Database(databasePath);
-    this.db = drizzle(this.sqlite);
+  constructor(databasePath: string = ':memory:', options?: { batchSize?: number; onProgress?: (progress: { completed: number; total: number; current: string }) => void }) {
+    this.db = new Database(databasePath);
+    this.wrapper = new DatabaseWrapper(this.db);
+    this.batchSize = options?.batchSize || 5;
+    this.onProgress = options?.onProgress;
     this.initializeMigrationTable();
   }
 
   private initializeMigrationTable() {
     // Create migrations tracking table
-    this.sqlite.exec(`
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS __migrations (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -38,59 +99,89 @@ export class DatabaseMigrator {
     this.migrations.push(migration);
   }
 
-  async runMigrations(): Promise<{ success: boolean; applied: string[]; errors: string[] }> {
+  async runMigrations(timeoutMs: number = 30000): Promise<{ success: boolean; applied: string[]; errors: string[] }> {
     const result = { success: true, applied: [] as string[], errors: [] as string[] };
     
+    // Get pending migrations
+    const pendingMigrations = [];
     for (const migration of this.migrations) {
-      try {
-        // Check if migration already applied
-        const existing = this.sqlite
-          .prepare('SELECT id FROM __migrations WHERE id = ?')
-          .get(migration.id);
-        
-        if (existing) {
-          continue;
-        }
-
-        // Begin transaction
-        const transaction = this.sqlite.transaction(async () => {
-          await migration.up(this.db);
+      const existing = this.db
+        .prepare('SELECT id FROM __migrations WHERE id = ?')
+        .get(migration.id);
+      
+      if (!existing) {
+        pendingMigrations.push(migration);
+      }
+    }
+    
+    if (pendingMigrations.length === 0) {
+      return result;
+    }
+    
+    // Process migrations in batches
+    for (let i = 0; i < pendingMigrations.length; i += this.batchSize) {
+      const batch = pendingMigrations.slice(i, i + this.batchSize);
+      
+      for (const migration of batch) {
+        try {
+          // Report progress
+          if (this.onProgress) {
+            this.onProgress({
+              completed: result.applied.length,
+              total: pendingMigrations.length,
+              current: migration.name
+            });
+          }
+          
+          // Execute migration with timeout
+          const migrationPromise = migration.up(this.wrapper);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error(`Migration timeout after ${timeoutMs}ms`)), timeoutMs);
+          });
+          
+          await Promise.race([migrationPromise, timeoutPromise]);
           
           // Record migration
-          this.sqlite
+          this.db
             .prepare('INSERT INTO __migrations (id, name) VALUES (?, ?)')
             .run(migration.id, migration.name);
-        });
-
-        transaction();
-        result.applied.push(migration.id);
-      } catch (error) {
-        result.success = false;
-        result.errors.push(`Migration ${migration.id}: ${error instanceof Error ? error.message : String(error)}`);
+          result.applied.push(migration.id);
+          
+        } catch (error) {
+          result.success = false;
+          result.errors.push(`Migration ${migration.id}: ${error instanceof Error ? error.message : String(error)}`);
+          return result; // Stop on first failure
+        }
+      }
+      
+      // Small delay between batches to prevent overwhelming the database
+      if (i + this.batchSize < pendingMigrations.length) {
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
 
     return result;
   }
 
-  async rollbackMigration(migrationId: string): Promise<{ success: boolean; error?: string }> {
+  async rollbackMigration(migrationId: string, timeoutMs: number = 30000): Promise<{ success: boolean; error?: string }> {
     try {
       const migration = this.migrations.find(m => m.id === migrationId);
       if (!migration) {
         throw new Error(`Migration ${migrationId} not found`);
       }
 
-      // Begin transaction
-      const transaction = this.sqlite.transaction(async () => {
-        await migration.down(this.db);
-        
-        // Remove migration record
-        this.sqlite
-          .prepare('DELETE FROM __migrations WHERE id = ?')
-          .run(migrationId);
+      // Execute rollback with timeout
+      const rollbackPromise = migration.down(this.wrapper);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(`Rollback timeout after ${timeoutMs}ms`)), timeoutMs);
       });
-
-      transaction();
+      
+      await Promise.race([rollbackPromise, timeoutPromise]);
+      
+      // Remove migration record
+      this.db
+        .prepare('DELETE FROM __migrations WHERE id = ?')
+        .run(migrationId);
       return { success: true };
     } catch (error) {
       return { 
@@ -101,7 +192,7 @@ export class DatabaseMigrator {
   }
 
   async getAppliedMigrations(): Promise<Array<{ id: string; name: string; applied_at: string }>> {
-    return this.sqlite
+    return this.db
       .prepare('SELECT id, name, applied_at FROM __migrations ORDER BY applied_at')
       .all() as Array<{ id: string; name: string; applied_at: string }>;
   }
@@ -132,7 +223,7 @@ export class DatabaseMigrator {
   async healthCheck(): Promise<{ healthy: boolean; details: Record<string, any> }> {
     try {
       // Test database connection
-      const testResult = this.sqlite.prepare('SELECT 1 as test').get();
+      const testResult = this.db.prepare('SELECT 1 as test').get();
       
       // Get migration status
       const appliedMigrations = await this.getAppliedMigrations();
@@ -144,9 +235,9 @@ export class DatabaseMigrator {
       );
 
       return {
-        healthy: testResult && testResult.test === 1,
+        healthy: Boolean(testResult && (testResult as any).test === 1),
         details: {
-          connectionTest: testResult?.test === 1,
+          connectionTest: Boolean((testResult as any)?.test === 1),
           totalMigrations,
           appliedMigrations: appliedMigrations.length,
           pendingMigrations: pendingMigrations.length,
@@ -164,6 +255,6 @@ export class DatabaseMigrator {
   }
 
   close() {
-    this.sqlite.close();
+    this.db.close();
   }
 }

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { validateEnv, getEnv } from "./lib/env";
+import { validateEnv } from "./lib/env";
 import { trpcServer } from "@hono/trpc-server";
 import { createContext } from "./lib/context";
 import { appRouter } from "./routers/index";
