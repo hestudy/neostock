@@ -87,7 +87,8 @@ export class InfrastructureManager {
   /**
    * 加载并验证基础设施配置
    */
-  loadConfig(configPath: string): InfraConfig {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  loadConfig(_configPath: string): InfraConfig {
     // 实际实现会从文件系统读取配置
     // 这里返回示例配置
     const config: InfraConfig = {

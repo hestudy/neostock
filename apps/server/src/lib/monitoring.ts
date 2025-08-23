@@ -206,7 +206,6 @@ export class HealthMonitor {
   }
 
   private async collectMetrics(): Promise<SystemMetrics> {
-    const memUsage = process.memoryUsage();
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;

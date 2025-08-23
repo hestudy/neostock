@@ -7,7 +7,7 @@ describe("API Router", () => {
   });
 
   it("should create caller without errors", () => {
-    const caller = appRouter.createCaller({});
+    const caller = appRouter.createCaller({ session: null });
     expect(caller).toBeDefined();
   });
 });

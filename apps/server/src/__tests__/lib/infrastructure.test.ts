@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { InfrastructureManager, InfraConfig } from '../../lib/infrastructure';
+import { InfrastructureManager, type InfraConfig } from '../../lib/infrastructure';
 
 describe('Infrastructure as Code Management', () => {
   let infraManager: InfrastructureManager;
@@ -168,7 +168,6 @@ describe('Infrastructure as Code Management', () => {
 
     it('应该在合理时间内完成部署', async () => {
       const config = infraManager.loadConfig('test-config.json');
-      const startTime = Date.now();
       
       const result = await infraManager.deploy(config.name, false);
       

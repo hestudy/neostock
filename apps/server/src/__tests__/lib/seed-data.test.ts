@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { SeedDataManager, generateMockStockData, StockBasicInfo } from '../../lib/seed-data';
+import { SeedDataManager, generateMockStockData, type StockBasicInfo } from '../../lib/seed-data';
 
 describe('Seed Data Management System', () => {
   let seedManager: SeedDataManager;

@@ -420,12 +420,14 @@ export class DisasterRecoveryManager {
     return { data, size, checksum };
   }
 
-  private async uploadToStorage(storage: StorageLocation, backupId: string, data: Buffer): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async uploadToStorage(_storage: StorageLocation, _backupId: string, _data: Buffer): Promise<void> {
     // 模拟上传到存储
     await new Promise(resolve => setTimeout(resolve, 50));
   }
 
-  private async verifyBackup(backupId: string): Promise<{ valid: boolean; error?: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async verifyBackup(_backupId: string): Promise<{ valid: boolean; error?: string }> {
     // 模拟备份验证
     return { valid: true };
   }
@@ -434,12 +436,14 @@ export class DisasterRecoveryManager {
     return this.backupHistory.find(backup => backup.backupId === backupId) || null;
   }
 
-  private async executeRestore(backupId: string, options: RestoreOptions): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async executeRestore(_backupId: string, _options: RestoreOptions): Promise<void> {
     // 模拟恢复执行
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 
-  private async validateBackupForRestore(backupId: string): Promise<{
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async validateBackupForRestore(_backupId: string): Promise<{
     passed: boolean;
     recordsValidated: number;
     inconsistencies: string[];

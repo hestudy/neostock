@@ -15,6 +15,10 @@ describe('Secure Credential Manager', () => {
       const environment = 'testing';
 
       const stored = await credentialManager.storeCredential(key, value, environment);
+      if (!stored) {
+        const auditLog = credentialManager.getAuditLog();
+        console.log('Store failed, audit log:', auditLog.filter(e => e.action === 'creation'));
+      }
       expect(stored).toBe(true);
 
       const retrieved = await credentialManager.getCredential(key, environment);

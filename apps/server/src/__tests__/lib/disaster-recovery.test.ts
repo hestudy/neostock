@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { DisasterRecoveryManager, BackupConfig } from '../../lib/disaster-recovery';
+import { DisasterRecoveryManager, type BackupConfig } from '../../lib/disaster-recovery';
 
 describe('Disaster Recovery and Backup Management', () => {
   let drManager: DisasterRecoveryManager;

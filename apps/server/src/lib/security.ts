@@ -25,18 +25,17 @@ export class SecureCredentialManager {
 
   constructor(masterKey?: string) {
     // In production, this would come from a secure key management service
-    this.encryptionKey = Buffer.from(
-      masterKey || process.env.ENCRYPTION_MASTER_KEY || 'fallback-key-for-testing-only-32b',
-      'utf8'
-    ).subarray(0, 32);
+    const keyMaterial = masterKey || process.env.ENCRYPTION_MASTER_KEY || 'fallback-key-for-testing-only';
+    // Use a deterministic method to derive exactly 32 bytes
+    this.encryptionKey = crypto.scryptSync(keyMaterial, 'salt', 32);
   }
 
   // Encrypt credentials for storage
   private encrypt(text: string): { encrypted: string; iv: string; tag: string } {
     try {
       const iv = crypto.randomBytes(16);
-      // Use AES-256-CBC for compatibility
-      const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
+      // Use AES-256-CBC with explicit IV (compatible with Bun)
+      const cipher = crypto.createCipheriv('aes-256-cbc', this.encryptionKey, iv);
       
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
@@ -44,7 +43,7 @@ export class SecureCredentialManager {
       return {
         encrypted,
         iv: iv.toString('hex'),
-        tag: '' // For compatibility
+        tag: '' // Not used for CBC mode
       };
     } catch (error) {
       throw new Error(`Encryption failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -54,7 +53,9 @@ export class SecureCredentialManager {
   // Decrypt credentials for use
   private decrypt(encryptedData: { encrypted: string; iv: string; tag: string }): string {
     try {
-      const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
+      const iv = Buffer.from(encryptedData.iv, 'hex');
+      // Use AES-256-CBC with explicit IV (compatible with Bun)
+      const decipher = crypto.createDecipheriv('aes-256-cbc', this.encryptionKey, iv);
       
       let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');

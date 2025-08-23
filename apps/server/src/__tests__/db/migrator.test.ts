@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { DatabaseMigrator, Migration } from '../../db/migrations/migrator';
+import { DatabaseMigrator, type Migration } from '../../db/migrations/migrator';
 import { sql } from 'drizzle-orm';
 
 describe('Database Migrator', () => {
@@ -99,6 +99,9 @@ describe('Database Migrator', () => {
       migrator.addMigration(createTableMigration);
 
       const result = await migrator.runMigrations();
+      if (!result.success) {
+        console.log('Migration errors:', result.errors);
+      }
       expect(result.success).toBe(true);
       expect(result.applied).toEqual(['001_create_users']);
       expect(result.errors).toHaveLength(0);
@@ -249,6 +252,9 @@ describe('Database Migrator', () => {
       const result = await migrator.runMigrations();
       const executionTime = Date.now() - startTime;
 
+      if (!result.success) {
+        console.log('Performance test errors:', result.errors);
+      }
       expect(result.success).toBe(true);
       expect(result.applied).toHaveLength(10);
       expect(executionTime).toBeLessThan(1000); // Should complete within 1 second
