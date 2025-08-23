@@ -9,6 +9,9 @@ export default mergeConfig(
       globals: true,
       environment: 'jsdom',
       setupFiles: ['./src/test-setup.ts'],
+      // 确保vi mock functions可用
+      mockReset: true,
+      restoreMocks: true,
       coverage: {
         reporter: ['text', 'json', 'html'],
         exclude: [
