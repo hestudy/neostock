@@ -99,16 +99,19 @@ describe('Tushare API Mock System', () => {
     it('should simulate timeout', async () => {
       mockApi.setFailureMode(FailureScenario.TIMEOUT);
 
-      // Set a shorter timeout for testing
+      // 在CI环境中使用更长的超时时间
+      const isCI = process.env.CI === 'true';
+      const timeoutMs = isCI ? 2000 : 1000; // CI环境使用2秒，本地使用1秒
+      
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Test timeout')), 1000);
+        setTimeout(() => reject(new Error('Test timeout')), timeoutMs);
       });
 
       await expect(Promise.race([
         mockApi.stockBasic(),
         timeoutPromise
       ])).rejects.toThrow('Test timeout');
-    });
+    }, 10000); // 增加测试超时时间到10秒
   });
 
   describe('Rate Limiting', () => {

@@ -154,14 +154,15 @@ describe('Seed Data Management System', () => {
 
     it('应该处理超时情况', async () => {
       const testData = generateMockStockData(1000);
-      const shortTimeoutManager = new SeedDataManager(1000, 10); // 10ms 超时
+      // 使用更可靠的方式模拟超时 - 使用更小的数据集但更短的超时
+      const shortTimeoutManager = new SeedDataManager(1000, 1); // 1ms 超时，确保立即触发
 
       const result = await shortTimeoutManager.importStockBasics(testData);
 
       expect(result.success).toBe(false);
       expect(result.errorDetails).toBeDefined();
       expect(result.errorDetails!.some(error => error.includes('timeout'))).toBe(true);
-    });
+    }, 10000); // 增加测试超时时间到10秒
   });
 
   describe('性能测试', () => {

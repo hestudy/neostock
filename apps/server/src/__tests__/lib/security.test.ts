@@ -166,15 +166,23 @@ describe('Secure Credential Manager', () => {
     });
 
     it('should filter audit log by date range', async () => {
-      const now = new Date();
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const beforeStore = new Date();
+      // 添加小延时确保时间戳不同
+      await new Promise(resolve => setTimeout(resolve, 10));
       
       await credentialManager.storeCredential('time_test', 'value', 'testing');
       
-      const recentLogs = credentialManager.getAuditLog(undefined, undefined, oneHourAgo, now);
+      // 添加小延时确保时间戳不同
+      await new Promise(resolve => setTimeout(resolve, 10));
+      const afterStore = new Date();
+      
+      // 使用存储前后的时间范围过滤
+      const recentLogs = credentialManager.getAuditLog(undefined, undefined, beforeStore, afterStore);
       expect(recentLogs.length).toBeGreaterThan(0);
       
-      const futureLogs = credentialManager.getAuditLog(undefined, undefined, new Date(now.getTime() + 1000));
+      // 测试未来时间应该没有日志
+      const futureTime = new Date(afterStore.getTime() + 60 * 1000); // 1分钟后
+      const futureLogs = credentialManager.getAuditLog(undefined, undefined, futureTime);
       expect(futureLogs.length).toBe(0);
     });
   });
