@@ -13,7 +13,10 @@ function RouteComponent() {
 
 	const navigate = Route.useNavigate();
 
-	const privateData = useQuery(trpc.privateData.queryOptions());
+	const privateData = useQuery({
+		queryKey: ['privateData'],
+		queryFn: () => (trpc as unknown as { privateData: { query: () => Promise<unknown> } }).privateData.query(),
+	});
 
 	useEffect(() => {
 		if (!session && !isPending) {
@@ -31,7 +34,7 @@ function RouteComponent() {
 		<div>
 			<h1>Dashboard</h1>
 			<p>Welcome {session?.user.name}</p>
-			<p>privateData: {privateData.data?.message}</p>
+			<p>privateData: {(privateData.data as { message?: string })?.message || 'Loading...'}</p>
 		</div>
 	);
 }

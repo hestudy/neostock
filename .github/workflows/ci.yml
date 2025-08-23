@@ -42,6 +42,9 @@ jobs:
       - name: Lint code
         run: bun run lint
 
+      - name: Build server first
+        run: cd apps/server && bun run build
+
       - name: Type check
         run: bun run check-types
 
