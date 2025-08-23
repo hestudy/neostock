@@ -1,0 +1,18 @@
+trace:
+  totals:
+    requirements: 15
+    full: 13
+    partial: 2
+    none: 0
+  planning_ref: 'docs/qa/assessments/1.0-trace-20250823.md'
+  uncovered:
+    - ac: 'AC7'
+      reason: '缺少API文档自动生成验证测试'
+    - ac: 'AC9/AC14'
+      reason: '高级安全扫描工具集成测试有限'
+  coverage_breakdown:
+    unit_tests: 42
+    integration_tests: 18
+    e2e_tests: 12
+    performance_tests: 8
+  notes: '87%完全覆盖率，13%部分覆盖。关键业务流程全部测试。建议增强API文档验证和安全扫描集成。'

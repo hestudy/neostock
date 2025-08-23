@@ -1,5 +1,5 @@
 version: 4.40.0
-installed_at: '2025-08-21T13:22:51.867Z'
+installed_at: '2025-08-23T03:09:56.040Z'
 install_type: full
 agent: null
 ides_setup:
@@ -99,24 +99,6 @@ files:
   - path: .bmad-core/data/bmad-kb.md
     hash: 57f0e9ae0e54b8e3
     modified: false
-  - path: .bmad-core/checklists/story-draft-checklist.md
-    hash: 0bc8a90678dba318
-    modified: false
-  - path: .bmad-core/checklists/story-dod-checklist.md
-    hash: df403478049b6958
-    modified: false
-  - path: .bmad-core/checklists/po-master-checklist.md
-    hash: c46c67e6bf61b70e
-    modified: false
-  - path: .bmad-core/checklists/pm-checklist.md
-    hash: b53f0270312713d2
-    modified: false
-  - path: .bmad-core/checklists/change-checklist.md
-    hash: fb2d071796c8f8b6
-    modified: false
-  - path: .bmad-core/checklists/architect-checklist.md
-    hash: 15ef7d01b0e31c3f
-    modified: false
   - path: .bmad-core/tasks/validate-next-story.md
     hash: a5a382fe9a8d9443
     modified: false
@@ -185,6 +167,24 @@ files:
     modified: false
   - path: .bmad-core/tasks/advanced-elicitation.md
     hash: d39118bf32237a21
+    modified: false
+  - path: .bmad-core/checklists/story-draft-checklist.md
+    hash: 0bc8a90678dba318
+    modified: false
+  - path: .bmad-core/checklists/story-dod-checklist.md
+    hash: df403478049b6958
+    modified: false
+  - path: .bmad-core/checklists/po-master-checklist.md
+    hash: c46c67e6bf61b70e
+    modified: false
+  - path: .bmad-core/checklists/pm-checklist.md
+    hash: b53f0270312713d2
+    modified: false
+  - path: .bmad-core/checklists/change-checklist.md
+    hash: fb2d071796c8f8b6
+    modified: false
+  - path: .bmad-core/checklists/architect-checklist.md
+    hash: 15ef7d01b0e31c3f
     modified: false
   - path: .bmad-core/agents/ux-expert.md
     hash: a99c4d3c839db162

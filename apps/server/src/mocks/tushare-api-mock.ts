@@ -3,7 +3,7 @@ export interface TushareResponse {
   msg: string;
   data: {
     fields: string[];
-    items: any[][];
+    items: unknown[][];
   };
 }
 
@@ -298,7 +298,7 @@ export class TushareAPIMock {
   }
 
   // Data quality validation
-  validateDataQuality(data: any): { valid: boolean; issues: string[] } {
+  validateDataQuality(data: unknown): { valid: boolean; issues: string[] } {
     const issues: string[] = [];
 
     if (!data || typeof data !== 'object') {
@@ -306,17 +306,19 @@ export class TushareAPIMock {
       return { valid: false, issues };
     }
 
-    if (data.code !== 0) {
-      issues.push(`API error: ${data.msg}`);
+    const responseData = data as { code?: number; msg?: string; data?: { fields?: unknown[]; items?: unknown[][] } };
+
+    if (responseData.code !== 0) {
+      issues.push(`API error: ${responseData.msg || 'Unknown error'}`);
     }
 
-    if (!data.data || !Array.isArray(data.data.fields) || !Array.isArray(data.data.items)) {
+    if (!responseData.data || !Array.isArray(responseData.data.fields) || !Array.isArray(responseData.data.items)) {
       issues.push('Invalid data structure');
     }
 
     // Check for data consistency
-    if (data.data) {
-      const { fields, items } = data.data;
+    if (responseData.data && responseData.data.fields && responseData.data.items) {
+      const { fields, items } = responseData.data;
       
       for (const item of items) {
         if (!Array.isArray(item) || item.length !== fields.length) {
@@ -367,7 +369,7 @@ export class TushareAPIMock {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private createSuccessResponse(fields: string[], items: any[][]): TushareResponse {
+  private createSuccessResponse(fields: string[], items: unknown[][]): TushareResponse {
     return {
       code: 0,
       msg: 'Success',

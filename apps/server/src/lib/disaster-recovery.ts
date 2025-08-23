@@ -82,9 +82,11 @@ export class DisasterRecoveryManager {
   private config: BackupConfig;
   private backupHistory: BackupResult[] = [];
   private restoreHistory: RestoreResult[] = [];
+  private isTestMode: boolean;
 
-  constructor(config: BackupConfig) {
+  constructor(config: BackupConfig, testMode: boolean = false) {
     this.config = config;
+    this.isTestMode = testMode;
   }
 
   /**
@@ -395,13 +397,15 @@ export class DisasterRecoveryManager {
   // 私有辅助方法
 
   private generateBackupId(type: string): string {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `backup-${type}-${timestamp}`;
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    return `backup-${type}-${timestamp}-${randomSuffix}`;
   }
 
   private generateRestoreId(): string {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `restore-${timestamp}`;
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    return `restore-${timestamp}-${randomSuffix}`;
   }
 
   private async executeBackup(type: string): Promise<{
@@ -414,16 +418,18 @@ export class DisasterRecoveryManager {
     const size = data.length;
     const checksum = Buffer.from(data.toString()).toString('base64').substring(0, 16);
 
-    // 模拟备份时间
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // 在测试模式下减少延迟
+    const delay = this.isTestMode ? 1 : 100;
+    await new Promise(resolve => setTimeout(resolve, delay));
 
     return { data, size, checksum };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async uploadToStorage(_storage: StorageLocation, _backupId: string, _data: Buffer): Promise<void> {
-    // 模拟上传到存储
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // 在测试模式下减少延迟
+    const delay = this.isTestMode ? 1 : 50;
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -438,8 +444,9 @@ export class DisasterRecoveryManager {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async executeRestore(_backupId: string, _options: RestoreOptions): Promise<void> {
-    // 模拟恢复执行
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // 在测试模式下减少延迟
+    const delay = this.isTestMode ? 1 : 200;
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

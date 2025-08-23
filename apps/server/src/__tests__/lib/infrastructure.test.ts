@@ -68,7 +68,7 @@ describe('Infrastructure as Code Management', () => {
 
     it('应该检测不支持的提供者', () => {
       const config = infraManager.loadConfig('test-config.json');
-      config.provider = 'unsupported' as any;
+      (config as { provider: string }).provider = 'unsupported';
 
       const validation = infraManager.validateConfig(config);
 
@@ -104,7 +104,7 @@ describe('Infrastructure as Code Management', () => {
 
     it('应该验证数据库配置', () => {
       const config = infraManager.loadConfig('test-config.json');
-      config.resources.database.type = 'unsupported' as any;
+      (config.resources.database as { type: string }).type = 'unsupported';
 
       const validation = infraManager.validateConfig(config);
 
@@ -116,7 +116,7 @@ describe('Infrastructure as Code Management', () => {
 
     it('应该验证存储配置', () => {
       const config = infraManager.loadConfig('test-config.json');
-      config.resources.storage.type = 'unsupported' as any;
+      (config.resources.storage as { type: string }).type = 'unsupported';
 
       const validation = infraManager.validateConfig(config);
 
@@ -181,6 +181,7 @@ describe('Infrastructure as Code Management', () => {
       const sourceConfig = infraManager.loadConfig('dev-config.json');
       sourceConfig.name = 'development';
       sourceConfig.environment = 'development';
+      infraManager.saveConfig(sourceConfig);
 
       const cloneResult = await infraManager.cloneEnvironment(
         'development', 
@@ -199,6 +200,7 @@ describe('Infrastructure as Code Management', () => {
       const sourceConfig = infraManager.loadConfig('dev-config.json');
       sourceConfig.name = 'development';
       sourceConfig.environment = 'development';
+      infraManager.saveConfig(sourceConfig);
 
       const cloneResult = await infraManager.cloneEnvironment(
         'development', 
@@ -228,6 +230,7 @@ describe('Infrastructure as Code Management', () => {
     it('应该提供有用的差异信息', async () => {
       const sourceConfig = infraManager.loadConfig('dev-config.json');
       sourceConfig.name = 'development';
+      infraManager.saveConfig(sourceConfig);
 
       const cloneResult = await infraManager.cloneEnvironment(
         'development', 
@@ -379,12 +382,14 @@ describe('Infrastructure as Code Management', () => {
     });
 
     it('应该支持环境批量操作', async () => {
+      const environments = ['dev', 'staging', 'prod'];
+      // 首先创建base配置
       const baseConfig = infraManager.loadConfig('base-config.json');
       baseConfig.name = 'base';
-
-      const environments = ['dev', 'staging', 'prod'];
+      infraManager.saveConfig(baseConfig);
+      
       const clonePromises = environments.map(env => 
-        infraManager.cloneEnvironment('base', env as any, `${env}-clone`)
+        infraManager.cloneEnvironment('base', env as InfraConfig['environment'], `${env}-clone`)
       );
 
       const results = await Promise.all(clonePromises);
@@ -405,9 +410,7 @@ describe('Infrastructure as Code Management', () => {
         // 缺少必需字段
       } as InfraConfig;
 
-      expect(() => infraManager.validateConfig(corruptedConfig)).not.toThrow();
-      
-      const validation = infraManager.validateConfig(corruptedConfig);
+      const validation = infraManager.validateConfig(corruptedConfig as InfraConfig);
       expect(validation.valid).toBe(false);
       expect(validation.issues.length).toBeGreaterThan(0);
     });

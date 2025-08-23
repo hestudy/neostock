@@ -19,7 +19,7 @@ export interface HealthCheck {
   status: 'pass' | 'warn' | 'fail';
   responseTime?: number;
   message?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface SystemMetrics {
@@ -244,6 +244,13 @@ export class HealthMonitor {
     if (this.responseTimes.length > 100) {
       this.responseTimes.shift();
     }
+  }
+
+  // Reset monitoring state for testing
+  reset() {
+    this.requestCounter = 0;
+    this.errorCounter = 0;
+    this.responseTimes = [];
   }
 
   getRequestMetrics() {

@@ -1,5 +1,12 @@
 import { Database } from 'bun:sqlite';
 
+interface DrizzleQuery {
+  queryChunks: unknown[];
+  values?: unknown[];
+}
+
+type QueryInput = string | DrizzleQuery | { queryChunks: unknown[]; values?: unknown[] };
+
 export interface Migration {
   id: string;
   name: string;
@@ -10,7 +17,7 @@ export interface Migration {
 export class DatabaseWrapper {
   constructor(private db: Database) {}
 
-  async run(query: any): Promise<void> {
+  async run(query: QueryInput): Promise<void> {
     if (typeof query === 'string') {
       this.db.run(query);
     } else if (query && query.queryChunks && Array.isArray(query.queryChunks)) {
@@ -23,7 +30,7 @@ export class DatabaseWrapper {
     }
   }
 
-  private buildSqlString(query: any): string {
+  private buildSqlString(query: DrizzleQuery): string {
     if (!query.queryChunks || !Array.isArray(query.queryChunks)) {
       return '';
     }
@@ -35,15 +42,16 @@ export class DatabaseWrapper {
       
       if (typeof chunk === 'string') {
         result.push(chunk);
-      } else if (chunk && chunk.value) {
-        if (Array.isArray(chunk.value)) {
-          result.push(chunk.value.join(''));
-        } else if (typeof chunk.value === 'string') {
-          result.push(chunk.value);
+      } else if (chunk && typeof chunk === 'object' && 'value' in chunk) {
+        const value = (chunk as { value: unknown }).value;
+        if (Array.isArray(value)) {
+          result.push(value.join(''));
+        } else if (typeof value === 'string') {
+          result.push(value);
         }
-      } else if (chunk && chunk.queryChunks && Array.isArray(chunk.queryChunks)) {
+      } else if (chunk && typeof chunk === 'object' && 'queryChunks' in chunk) {
         // Recursively handle nested sql.raw()
-        result.push(this.buildSqlString(chunk));
+        result.push(this.buildSqlString(chunk as DrizzleQuery));
       }
       
       // Handle parameters/values between chunks
@@ -220,7 +228,7 @@ export class DatabaseMigrator {
     return { valid: issues.length === 0, issues };
   }
 
-  async healthCheck(): Promise<{ healthy: boolean; details: Record<string, any> }> {
+  async healthCheck(): Promise<{ healthy: boolean; details: Record<string, unknown> }> {
     try {
       // Test database connection
       const testResult = this.db.prepare('SELECT 1 as test').get();
@@ -235,9 +243,9 @@ export class DatabaseMigrator {
       );
 
       return {
-        healthy: Boolean(testResult && (testResult as any).test === 1),
+        healthy: Boolean(testResult && (testResult as { test: number }).test === 1),
         details: {
-          connectionTest: Boolean((testResult as any)?.test === 1),
+          connectionTest: Boolean((testResult as { test: number })?.test === 1),
           totalMigrations,
           appliedMigrations: appliedMigrations.length,
           pendingMigrations: pendingMigrations.length,

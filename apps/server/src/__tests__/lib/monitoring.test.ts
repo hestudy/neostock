@@ -158,6 +158,9 @@ describe('Health Monitoring System', () => {
 
   describe('Alert System', () => {
     it('should not alert under normal conditions', () => {
+      // Reset state before test
+      monitor.reset();
+      
       // Record normal requests
       monitor.recordRequest(100, false);
       monitor.recordRequest(150, false);

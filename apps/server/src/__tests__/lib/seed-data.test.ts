@@ -154,7 +154,7 @@ describe('Seed Data Management System', () => {
 
     it('应该处理超时情况', async () => {
       const testData = generateMockStockData(1000);
-      const shortTimeoutManager = new SeedDataManager(1000, 1); // 1ms 超时
+      const shortTimeoutManager = new SeedDataManager(1000, 10); // 10ms 超时
 
       const result = await shortTimeoutManager.importStockBasics(testData);
 

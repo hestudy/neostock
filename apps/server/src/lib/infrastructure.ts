@@ -136,9 +136,29 @@ export class InfrastructureManager {
   }
 
   /**
+   * 保存配置到内存存储
+   */
+  saveConfig(config: InfraConfig): void {
+    this.configs.set(config.name, config);
+  }
+
+  /**
    * 验证基础设施配置的正确性
    */
   validateConfig(config: InfraConfig): ValidationResult {
+    // 检查必需字段存在性
+    if (!config || !config.resources) {
+      return {
+        valid: false,
+        issues: [{
+          level: 'error',
+          component: 'config',
+          message: 'Configuration or resources section is missing'
+        }],
+        warnings: [],
+        configHash: ''
+      };
+    }
     const result: ValidationResult = {
       valid: true,
       issues: [],
@@ -406,8 +426,23 @@ export class InfrastructureManager {
   }
 
   private generateConfigHash(config: InfraConfig): string {
-    // 简单的哈希生成，实际实现会使用 crypto
-    return Buffer.from(JSON.stringify(config)).toString('base64').substring(0, 16);
+    // 对配置进行排序的JSON序列化以确保一致的哈希
+    const sortedConfig = this.sortObjectKeys(config);
+    return Buffer.from(JSON.stringify(sortedConfig)).toString('base64').substring(0, 16);
+  }
+
+  private sortObjectKeys(obj: unknown): unknown {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.sortObjectKeys(item));
+    }
+    const sorted: Record<string, unknown> = {};
+    Object.keys(obj as Record<string, unknown>).sort().forEach(key => {
+      sorted[key] = this.sortObjectKeys((obj as Record<string, unknown>)[key]);
+    });
+    return sorted;
   }
 
   private generateMockServices(config: InfraConfig): ServiceStatus[] {
