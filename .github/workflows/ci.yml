@@ -34,6 +34,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Setup environment for CI
+        run: |
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "CI=true" >> $GITHUB_ENV
+
       - name: Lint code
         run: bun run lint
 
@@ -50,13 +55,17 @@ jobs:
         run: bun run build
         
       - name: Validate API documentation
-        run: turbo docs:validate
+        run: bun run docs:validate
         
       - name: Quality Gate Check
-        run: turbo -F server quality:gate
+        run: cd apps/server && bun run quality:gate
+        env:
+          CI: true
         
       - name: Security Gate Check
-        run: turbo -F server security:gate
+        run: cd apps/server && bun run security:gate
+        env:
+          CI: true
 
       - name: Upload coverage reports to Codecov
         if: success()
