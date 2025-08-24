@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import 'jsdom-global/register'
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {

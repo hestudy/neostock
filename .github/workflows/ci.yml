@@ -49,7 +49,7 @@ jobs:
         run: bun run check-types
 
       - name: Run tests
-        run: bun run test
+        run: bun run test:ci
 
       - name: Run tests with coverage
         run: bun run test:coverage

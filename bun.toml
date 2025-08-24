@@ -1,0 +1,5 @@
+[test]
+# 排除 E2E 测试文件，这些应该通过 Playwright 运行
+exclude = [
+  "tests/**"
+]
