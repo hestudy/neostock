@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom'
 import 'jsdom-global/register'
 
+// 确保全局对象正确设置
+if (typeof global !== 'undefined') {
+  global.window = window
+  global.document = document
+}
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

@@ -23,9 +23,9 @@ FROM oven/bun:1.2.18-alpine AS runtime
 # 安装安全更新
 RUN apk update && apk upgrade && apk add --no-cache dumb-init
 
-# 创建非root用户
-RUN addgroup -g 1001 -S nodejs || true
-RUN adduser -S appuser -u 1001 -G nodejs || true
+# 创建非root用户（检查是否已存在）
+RUN if ! getent group nodejs; then addgroup -g 1001 -S nodejs; fi
+RUN if ! id appuser 2>/dev/null; then adduser -S appuser -u 1001 -G nodejs; fi
 
 # 设置工作目录
 WORKDIR /app
