@@ -54,11 +54,17 @@ jobs:
       - name: Run tests with coverage
         run: bun run test:coverage
 
+      - name: Run performance tests
+        run: bun run test:performance
+        timeout-minutes: 15
+
       - name: Build applications
         run: bun run build
         
       - name: Validate API documentation
         run: bun run docs:validate
+        env:
+          AUTO_SYNC_DOCS: false
         
       - name: Quality Gate Check
         run: cd apps/server && bun run quality:gate
