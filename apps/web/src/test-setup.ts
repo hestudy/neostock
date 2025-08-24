@@ -1,35 +1,24 @@
 import '@testing-library/jest-dom'
-import 'jsdom-global/register'
-
-// 确保全局对象正确设置
-if (typeof global !== 'undefined') {
-  global.window = window
-  global.document = document
-}
+import { vi } from 'vitest'
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: (query: string) => {
-    const mediaQuery: Partial<MediaQueryList> = {
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }
-    return mediaQuery as MediaQueryList
-  },
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
 })
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  constructor(_callback: ResizeObserverCallback) {}
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}))
