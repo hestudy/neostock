@@ -10,16 +10,19 @@ if (typeof global !== 'undefined') {
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => {},
-  }),
+  value: (query: string) => {
+    const mediaQuery: Partial<MediaQueryList> = {
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }
+    return mediaQuery as MediaQueryList
+  },
 })
 
 // Mock ResizeObserver
