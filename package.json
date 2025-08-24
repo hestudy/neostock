@@ -24,7 +24,10 @@
 		"db:studio": "turbo -F server db:studio",
 		"db:generate": "turbo -F server db:generate",
 		"db:migrate": "turbo -F server db:migrate",
-		"docs:validate": "turbo -F server docs:validate"
+		"docs:validate": "turbo -F server docs:validate",
+		"quality:gate": "turbo -F server quality:gate",
+		"security:gate": "turbo -F server security:gate",
+		"pre-deploy": "turbo -F server pre-deploy"
 	},
 	"dependencies": {},
 	"devDependencies": {

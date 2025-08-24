@@ -41,6 +41,18 @@
 		"db:generate": {
 			"cache": false,
 			"persistent": true
+		},
+		"docs:validate": {
+			"dependsOn": ["^docs:validate"]
+		},
+		"quality:gate": {
+			"dependsOn": ["^quality:gate"]
+		},
+		"security:gate": {
+			"dependsOn": ["^security:gate"]
+		},
+		"pre-deploy": {
+			"dependsOn": ["^pre-deploy"]
 		}
 	}
 }
