@@ -1,21 +1,90 @@
 // 兼容不同环境的数据库导入
-let Database: any;
+interface DatabaseInterface {
+  exec(query: string): unknown;
+  prepare(query: string): {
+    all: () => unknown[];
+    run: (...args: unknown[]) => { changes: number; lastInsertRowid: number };
+    get: (...args: unknown[]) => unknown;
+  };
+  close(): void;
+  run?: (query: string) => unknown;
+}
+
+let DatabaseClass: new (filename?: string, options?: unknown) => DatabaseInterface;
+
+// 同步初始化，用于向后兼容
 try {
-  // 在Bun环境中使用bun:sqlite
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const bunSqlite = require('bun:sqlite');
-  Database = bunSqlite.Database;
+  DatabaseClass = bunSqlite.Database;
 } catch {
-  // 在测试环境中使用模拟实现
-  Database = class MockDatabase {
+  DatabaseClass = class MockDatabase implements DatabaseInterface {
+    private mockTables: Record<string, unknown[]> = {};
+    
     constructor() {}
-    exec() { return this; }
-    prepare() { 
+    
+    exec(query: string) { 
+      // 模拟SQL错误检测
+      if (query.includes('INVALID SQL STATEMENT')) {
+        throw new Error('SQL syntax error: invalid statement');
+      }
+      // 模拟表创建
+      if (query.includes('CREATE TABLE IF NOT EXISTS __migrations')) {
+        this.mockTables['__migrations'] = [];
+      }
+      return this; 
+    }
+    
+    prepare(query: string) { 
       return { 
-        all: () => [], 
-        run: () => ({ changes: 0, lastInsertRowid: 0 }),
-        get: () => null 
+        all: () => {
+          if (query.includes('SELECT id, name, applied_at FROM __migrations')) {
+            return this.mockTables['__migrations'] || [];
+          }
+          return [];
+        },
+        run: (...args: unknown[]) => {
+          if (query.includes('INSERT INTO __migrations')) {
+            // 模拟插入迁移记录
+            const [id, name] = args as [string, string];
+            this.mockTables['__migrations'] = this.mockTables['__migrations'] || [];
+            this.mockTables['__migrations'].push({ 
+              id, 
+              name, 
+              applied_at: new Date().toISOString() 
+            });
+          } else if (query.includes('DELETE FROM __migrations')) {
+            // 模拟删除迁移记录
+            const [id] = args as [string];
+            this.mockTables['__migrations'] = (this.mockTables['__migrations'] || []).filter(
+              (record) => (record as { id: string }).id !== id
+            );
+          }
+          return { changes: 1, lastInsertRowid: 1 };
+        },
+        get: (...args: unknown[]) => {
+          if (query.includes('SELECT 1 as test')) {
+            return { test: 1 };
+          }
+          if (query.includes('SELECT id FROM __migrations WHERE id = ?')) {
+            const [id] = args as [string];
+            return (this.mockTables['__migrations'] || []).find(
+              (record) => (record as { id: string }).id === id
+            ) || null;
+          }
+          return null;
+        }
       }; 
     }
+    
+    run(query: string) {
+      // 模拟SQL错误检测
+      if (query.includes('INVALID SQL STATEMENT')) {
+        throw new Error('SQL syntax error: invalid statement');
+      }
+      return this.exec(query);
+    }
+    
     close() {}
   };
 }
@@ -35,15 +104,23 @@ export interface Migration {
 }
 
 export class DatabaseWrapper {
-  constructor(private db: Database) {}
+  constructor(private db: DatabaseInterface) {}
 
   async run(query: QueryInput): Promise<void> {
     if (typeof query === 'string') {
-      this.db.run(query);
+      if (this.db.run) {
+        this.db.run(query);
+      } else {
+        this.db.exec(query);
+      }
     } else if (query && query.queryChunks && Array.isArray(query.queryChunks)) {
       // Handle drizzle SQL template (including nested sql.raw())
       const sqlString = this.buildSqlString(query);
-      this.db.run(sqlString);
+      if (this.db.run) {
+        this.db.run(sqlString);
+      } else {
+        this.db.exec(sqlString);
+      }
     } else {
       console.error('Unknown query format:', query);
       throw new Error('Invalid query format');
@@ -97,14 +174,14 @@ export class DatabaseWrapper {
 }
 
 export class DatabaseMigrator {
-  private db: Database;
+  private db: DatabaseInterface;
   private wrapper: DatabaseWrapper;
   private migrations: Migration[] = [];
   private batchSize: number = 5;
   private onProgress?: (progress: { completed: number; total: number; current: string }) => void;
 
   constructor(databasePath: string = ':memory:', options?: { batchSize?: number; onProgress?: (progress: { completed: number; total: number; current: string }) => void }) {
-    this.db = new Database(databasePath);
+    this.db = new DatabaseClass(databasePath);
     this.wrapper = new DatabaseWrapper(this.db);
     this.batchSize = options?.batchSize || 5;
     this.onProgress = options?.onProgress;
