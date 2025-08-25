@@ -89,12 +89,16 @@ neostock/
 - `bun db:migrate`: Apply database migrations
 - `cd apps/server && bun db:local`: Start the local SQLite database
 
-### 代码质量
+### 代码质量和测试
 - `bun lint`: Run ESLint on all packages
 - `bun lint:fix`: Fix auto-fixable ESLint issues
+- `bun test:performance`: Run performance benchmark tests
+- `bun test:e2e`: Run end-to-end tests with Playwright
+- `bun test:e2e:ui`: Run E2E tests with UI mode
+- `bun test:e2e:report`: Show Playwright test report
 
 ### 质量门控和部署
-- `cd apps/server && bun run docs:validate`: Validate documentation
-- `cd apps/server && bun run quality:gate`: Run quality gate checks
-- `cd apps/server && bun run security:gate`: Run security gate checks  
-- `cd apps/server && bun run pre-deploy`: Pre-deployment verification
+- `bun docs:validate`: Validate API documentation consistency
+- `bun quality:gate`: Run comprehensive quality gate checks
+- `bun security:gate`: Run security gate checks and scanning
+- `bun pre-deploy`: Pre-deployment verification and validation
