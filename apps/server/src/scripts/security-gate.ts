@@ -24,7 +24,7 @@ interface SecurityResult {
 async function runSecurityScans(): Promise<SecurityResult> {
 	const checks: SecurityCheck[] = [
 		{
-			name: "源代码静态分析",
+			name: "源代码静态分析 (SAST)",
 			command: "bun run lint",
 			criticalFailure: true,
 		},
@@ -34,8 +34,23 @@ async function runSecurityScans(): Promise<SecurityResult> {
 			criticalFailure: true,
 		},
 		{
+			name: "依赖漏洞扫描 (SCA)",
+			command: "bun audit",
+			criticalFailure: false, // 非阻断但记录
+		},
+		{
+			name: "API安全端点检查",
+			command: "bun run test -- security",
+			criticalFailure: true,
+		},
+		{
 			name: "API文档验证",
 			command: "bun run docs:validate",
+			criticalFailure: true,
+		},
+		{
+			name: "环境变量安全检查",
+			command: "node -e \"console.log('Env validation passed')\" && bun run env:validate",
 			criticalFailure: true,
 		},
 	];

@@ -1,0 +1,15 @@
+trace:
+  totals:
+    requirements: 17
+    full: 14
+    partial: 3
+    none: 0
+  planning_ref: 'docs/qa/assessments/1.0-trace-20250825.md'
+  uncovered:
+    - ac: 'AC7'
+      reason: 'API文档自动生成缺少测试验证'
+    - ac: 'AC9'
+      reason: '专业安全工具(CodeQL, Snyk)缺少深度集成测试'
+    - ac: 'AC14'
+      reason: '与AC9相同，专业安全工具深度测试不足'
+  notes: 'Story 1.0需求可追溯性达到优秀水平(82%完全覆盖)，所有关键业务流程和核心基础设施功能都有完整测试覆盖。部分覆盖的3项需求为非关键增强功能，不影响生产就绪状态。'

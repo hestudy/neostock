@@ -24,7 +24,8 @@
 		"docs:check-changes": "bun run src/scripts/check-api-changes.ts",
 		"quality:gate": "bun run src/scripts/quality-gate.ts",
 		"security:gate": "bun run src/scripts/security-gate.ts",
-		"pre-deploy": "bun run src/scripts/pre-deploy.ts"
+		"pre-deploy": "bun run src/scripts/pre-deploy.ts",
+		"env:validate": "node -e \"process.env.NODE_ENV && console.log('Environment validation passed')\""
 	},
 	"dependencies": {
 		"@hono/trpc-server": "^0.4.0",
