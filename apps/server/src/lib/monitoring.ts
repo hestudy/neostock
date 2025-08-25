@@ -1,6 +1,20 @@
 import { performance } from 'perf_hooks';
 import os from 'os';
 
+// Performance benchmarks based on NFR requirements
+export const PERFORMANCE_BENCHMARKS = {
+  API_RESPONSE_TIME: {
+    BASIC_OPERATIONS: 200, // ms - 基础操作
+    COMPLEX_QUERIES: 500,  // ms - 复杂查询
+    CRITICAL_THRESHOLD: 1000 // ms - 临界阈值
+  },
+  MONITORING_INTERVALS: {
+    METRICS_COLLECTION: 30, // seconds
+    ALERT_CHECK: 60, // seconds
+    HISTORY_RETENTION: 1440 // minutes (24 hours)
+  }
+};
+
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
@@ -263,7 +277,7 @@ export class HealthMonitor {
     };
   }
 
-  // Alert checking
+  // Alert checking with performance benchmark integration
   shouldAlert(): { alert: boolean; reasons: string[] } {
     const reasons: string[] = [];
     const metrics = this.getRequestMetrics();
@@ -273,9 +287,13 @@ export class HealthMonitor {
       reasons.push(`High error rate: ${metrics.errorRate.toFixed(2)}%`);
     }
 
-    // Check average response time
-    if (metrics.averageResponseTime > 1000) {
-      reasons.push(`High response time: ${metrics.averageResponseTime.toFixed(2)}ms`);
+    // Enhanced response time checking with benchmarks
+    if (metrics.averageResponseTime > PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.CRITICAL_THRESHOLD) {
+      reasons.push(`Critical response time: ${metrics.averageResponseTime.toFixed(2)}ms (threshold: ${PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.CRITICAL_THRESHOLD}ms)`);
+    } else if (metrics.averageResponseTime > PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.COMPLEX_QUERIES) {
+      reasons.push(`High response time: ${metrics.averageResponseTime.toFixed(2)}ms (exceeds complex query benchmark: ${PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.COMPLEX_QUERIES}ms)`);
+    } else if (metrics.averageResponseTime > PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.BASIC_OPERATIONS) {
+      reasons.push(`Warning response time: ${metrics.averageResponseTime.toFixed(2)}ms (exceeds basic operation benchmark: ${PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.BASIC_OPERATIONS}ms)`);
     }
 
     // Check memory usage (skip in test environment to avoid flaky tests)
@@ -289,6 +307,46 @@ export class HealthMonitor {
     return {
       alert: reasons.length > 0,
       reasons
+    };
+  }
+
+  // New method: Get performance benchmark status
+  getPerformanceBenchmarkStatus() {
+    const metrics = this.getRequestMetrics();
+    const avgResponseTime = metrics.averageResponseTime;
+
+    let status: 'excellent' | 'good' | 'warning' | 'critical' = 'excellent';
+    let benchmark = '';
+
+    if (avgResponseTime <= PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.BASIC_OPERATIONS) {
+      status = 'excellent';
+      benchmark = 'basic_operations';
+    } else if (avgResponseTime <= PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.COMPLEX_QUERIES) {
+      status = 'good';
+      benchmark = 'complex_queries';
+    } else if (avgResponseTime <= PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME.CRITICAL_THRESHOLD) {
+      status = 'warning';
+      benchmark = 'critical_threshold';
+    } else {
+      status = 'critical';
+      benchmark = 'exceeds_critical';
+    }
+
+    return {
+      status,
+      benchmark,
+      currentResponseTime: avgResponseTime,
+      benchmarks: PERFORMANCE_BENCHMARKS.API_RESPONSE_TIME
+    };
+  }
+
+  // New method: Get performance history (simplified for now)
+  getPerformanceHistory() {
+    return {
+      responseTimes: [...this.responseTimes],
+      requestCount: this.requestCounter,
+      errorCount: this.errorCounter,
+      timestamp: new Date().toISOString()
     };
   }
 }

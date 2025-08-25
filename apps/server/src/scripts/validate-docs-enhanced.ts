@@ -43,7 +43,7 @@ async function runAdvancedValidation() {
     let appRouter;
     try {
       const routerModule = await import('../routers/index.js');
-      appRouter = routerModule.appRouter || (routerModule as any).default;
+      appRouter = routerModule.appRouter || (routerModule as unknown as { default: unknown }).default;
     } catch {
       console.log(colors.yellow('⚠️  无法加载 tRPC 路由器，回退到基础验证'));
       return runBasicValidation();

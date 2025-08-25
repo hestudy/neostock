@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
 // Mock appRouter and openApiDocument for now
-const appRouter = {} as any;
-const openApiDocument = { paths: {} } as any;
+const appRouter = {} as Record<string, unknown>;
+const openApiDocument = { paths: {} } as { paths: Record<string, unknown> };
 
 interface ValidationResult {
 	success: boolean;
@@ -35,12 +35,12 @@ function extractOpenApiEndpoints() {
 	
 	if (openApiDocument.paths) {
 		for (const path of Object.keys(openApiDocument.paths)) {
-			const pathItem = openApiDocument.paths[path];
-			if (pathItem) {
+			const pathItem = openApiDocument.paths[path] as any;
+			if (pathItem && typeof pathItem === 'object') {
 				for (const method of Object.keys(pathItem)) {
 					if (['get', 'post', 'put', 'patch', 'delete'].includes(method)) {
-						const operation = pathItem[method as keyof typeof pathItem];
-						if (operation && 'operationId' in operation) {
+						const operation = pathItem[method];
+						if (operation && typeof operation === 'object' && 'operationId' in operation) {
 							endpoints.add(operation.operationId as string);
 						}
 					}

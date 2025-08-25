@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { handleOpenApiRequest, openApiDocument } from "./openapi/handler";
+import { performanceMiddleware } from "./lib/performance-middleware";
 
 // Validate environment variables at startup
 validateEnv();
@@ -15,6 +16,7 @@ validateEnv();
 const app = new Hono();
 
 app.use(logger());
+app.use("/*", performanceMiddleware());
 app.use(
 	"/*",
 	cors({
@@ -74,5 +76,10 @@ app.get("/api/docs", (c) => {
 
 app.all("/api/health-check", handleOpenApiRequest);
 app.all("/api/private-data", handleOpenApiRequest);
+// Performance monitoring API endpoints
+app.all("/api/performance.metrics", handleOpenApiRequest);
+app.all("/api/performance.benchmarks", handleOpenApiRequest);
+app.all("/api/performance.history", handleOpenApiRequest);
+app.all("/api/performance.alerts", handleOpenApiRequest);
 
 export default app;

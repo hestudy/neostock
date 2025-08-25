@@ -94,9 +94,9 @@ export class APIDocValidator {
   /**
    * 生成 OpenAPI 规范
    */
-  private generateOpenApiSpec(): any {
+  private generateOpenApiSpec(): OpenAPIV3.Document {
     try {
-      return generateOpenApiDocument(this.appRouter as any, {
+      const spec = generateOpenApiDocument(this.appRouter as any, {
         title: 'NeoStock API',
         description: '中国股票分析平台 API',
         version: '1.0.0',
@@ -104,6 +104,7 @@ export class APIDocValidator {
         docsUrl: '/api/docs',
         tags: ['stocks', 'auth', 'monitoring'],
       });
+      return spec as OpenAPIV3.Document;
     } catch (error) {
       throw new Error(`Failed to generate OpenAPI spec: ${error}`);
     }

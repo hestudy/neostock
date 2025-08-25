@@ -186,10 +186,10 @@ describe('Health Monitoring System', () => {
     });
 
     it('should alert on high response time', () => {
-      // Record requests with high response times (>1000ms)
-      monitor.recordRequest(1500, false);
-      monitor.recordRequest(1200, false);
-      monitor.recordRequest(1100, false);
+      // Record requests with high response times (>500ms but <1000ms)
+      monitor.recordRequest(800, false);
+      monitor.recordRequest(700, false);
+      monitor.recordRequest(600, false);
 
       const alert = monitor.shouldAlert();
       expect(alert.alert).toBe(true);

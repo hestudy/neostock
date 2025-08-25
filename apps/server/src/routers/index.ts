@@ -1,5 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 import { z } from "zod";
+import { performanceRouter } from "./performance";
 
 export const appRouter = router({
 	healthCheck: publicProcedure
@@ -44,5 +45,7 @@ export const appRouter = router({
 				user: ctx.session.user,
 			};
 		}),
+	// Performance monitoring routes
+	performance: performanceRouter,
 });
 export type AppRouter = typeof appRouter;
