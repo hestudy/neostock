@@ -4,6 +4,7 @@
  */
 
 import type { OpenAPIV3 } from 'openapi-types';
+import type { AnyRouter } from '@trpc/server';
 import { generateOpenApiDocument } from 'trpc-to-openapi';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
@@ -20,6 +21,11 @@ export interface ValidationResult {
   outdated: string[];
 }
 
+// 定义 API 文档目录常量
+export const API_DOCS_PATH = resolve(__dirname, '../docs/api');
+export const SCHEMAS_PATH = resolve(API_DOCS_PATH, 'schemas');
+export const ENDPOINTS_PATH = resolve(API_DOCS_PATH, 'endpoints');
+
 export interface DocumentationStats {
   totalEndpoints: number;
   documentedEndpoints: number;
@@ -34,7 +40,7 @@ export class APIDocValidator {
   private generatedOpenApiPath: string;
 
   constructor(
-    private appRouter: unknown,
+    private appRouter: AnyRouter,
     openApiPath = 'docs/api/openapi.json',
     generatedPath = 'docs/api/generated-openapi.json'
   ) {
@@ -96,7 +102,7 @@ export class APIDocValidator {
    */
   private generateOpenApiSpec(): OpenAPIV3.Document {
     try {
-      const spec = generateOpenApiDocument(this.appRouter as any, {
+      const spec = generateOpenApiDocument(this.appRouter, {
         title: 'NeoStock API',
         description: '中国股票分析平台 API',
         version: '1.0.0',
@@ -336,7 +342,7 @@ export class APIDocValidator {
 /**
  * 创建默认的文档验证器实例
  */
-export function createDocValidator(appRouter: unknown): APIDocValidator {
+export function createDocValidator(appRouter: AnyRouter): APIDocValidator {
   return new APIDocValidator(appRouter);
 }
 

@@ -1,12 +1,46 @@
 import { router, publicProcedure } from '../lib/trpc';
 import { HealthMonitor, PERFORMANCE_BENCHMARKS } from '../lib/monitoring';
+import { z } from 'zod';
 
 // Global health monitor instance
 const healthMonitor = new HealthMonitor();
 
 export const performanceRouter = router({
   // Get current performance metrics
-  metrics: publicProcedure.query(async () => {
+  metrics: publicProcedure
+    .meta({
+      openapi: {
+        method: 'GET',
+        path: '/performance/metrics',
+        summary: 'Get current performance metrics',
+        description: 'Returns current performance metrics, benchmarks, and alert status',
+        tags: ['Performance'],
+        protect: false
+      }
+    })
+    .input(z.void())
+    .output(z.object({
+      timestamp: z.string(),
+      responseTime: z.object({
+        current: z.number(),
+        status: z.string(),
+        benchmark: z.string(),
+        thresholds: z.any()
+      }),
+      requests: z.object({
+        total: z.number(),
+        errors: z.number(),
+        errorRate: z.number(),
+        successRate: z.number()
+      }),
+      alerts: z.object({
+        active: z.boolean(),
+        reasons: z.array(z.string()),
+        count: z.number()
+      }),
+      benchmarks: z.any()
+    }))
+    .query(async () => {
     const requestMetrics = healthMonitor.getRequestMetrics();
     const benchmarkStatus = healthMonitor.getPerformanceBenchmarkStatus();
     const alertStatus = healthMonitor.shouldAlert();
@@ -35,7 +69,39 @@ export const performanceRouter = router({
   }),
 
   // Get performance benchmark comparison
-  benchmarks: publicProcedure.query(() => {
+  benchmarks: publicProcedure
+    .meta({
+      openapi: {
+        method: 'GET',
+        path: '/performance/benchmarks',
+        summary: 'Get performance benchmark comparison',
+        description: 'Returns performance benchmark definitions and current status',
+        tags: ['Performance'],
+        protect: false
+      }
+    })
+    .input(z.void())
+    .output(z.object({
+      current: z.any(),
+      definitions: z.object({
+        basic_operations: z.object({
+          threshold: z.number(),
+          description: z.string(),
+          examples: z.array(z.string())
+        }),
+        complex_queries: z.object({
+          threshold: z.number(),
+          description: z.string(),
+          examples: z.array(z.string())
+        }),
+        critical_threshold: z.object({
+          threshold: z.number(),
+          description: z.string(),
+          action: z.string()
+        })
+      })
+    }))
+    .query(() => {
     const benchmarkStatus = healthMonitor.getPerformanceBenchmarkStatus();
     
     return {
@@ -61,7 +127,37 @@ export const performanceRouter = router({
   }),
 
   // Get performance history (last 100 requests)
-  history: publicProcedure.query(() => {
+  history: publicProcedure
+    .meta({
+      openapi: {
+        method: 'GET',
+        path: '/performance/history',
+        summary: 'Get performance history',
+        description: 'Returns performance history data with statistics and percentiles',
+        tags: ['Performance'],
+        protect: false
+      }
+    })
+    .input(z.void())
+    .output(z.object({
+      responseTimes: z.array(z.number()),
+      averageResponseTime: z.number(),
+      requestCount: z.number(),
+      errorCount: z.number(),
+      timestamp: z.string(),
+      statistics: z.object({
+        count: z.number(),
+        min: z.number(),
+        max: z.number(),
+        percentiles: z.object({
+          p50: z.number(),
+          p90: z.number(),
+          p95: z.number(),
+          p99: z.number()
+        })
+      })
+    }))
+    .query(() => {
     const history = healthMonitor.getPerformanceHistory();
     
     // Calculate percentiles from response times
@@ -77,8 +173,16 @@ export const performanceRouter = router({
       p50: 0, p90: 0, p95: 0, p99: 0
     };
 
+    // Calculate average response time
+    const averageResponseTime = count > 0 ? 
+      responseTimes.reduce((sum, time) => sum + time, 0) / count : 0;
+
     return {
-      ...history,
+      responseTimes: history.responseTimes,
+      averageResponseTime,
+      requestCount: history.requestCount || 0,
+      errorCount: history.errorCount || 0,
+      timestamp: history.timestamp,
       statistics: {
         count,
         min: count > 0 ? Math.min(...responseTimes) : 0,
@@ -89,7 +193,35 @@ export const performanceRouter = router({
   }),
 
   // Get current alert status
-  alerts: publicProcedure.query(() => {
+  alerts: publicProcedure
+    .meta({
+      openapi: {
+        method: 'GET',
+        path: '/performance/alerts',
+        summary: 'Get current alert status',
+        description: 'Returns current alert status and performance monitoring alerts',
+        tags: ['Performance'],
+        protect: false
+      }
+    })
+    .input(z.void())
+    .output(z.object({
+      timestamp: z.string(),
+      hasAlerts: z.boolean(),
+      alertCount: z.number(),
+      alerts: z.array(z.object({
+        id: z.string(),
+        severity: z.string(),
+        message: z.string(),
+        timestamp: z.string()
+      })),
+      performanceStatus: z.object({
+        status: z.string(),
+        message: z.string(),
+        benchmark: z.string()
+      })
+    }))
+    .query(() => {
     const alertStatus = healthMonitor.shouldAlert();
     const benchmarkStatus = healthMonitor.getPerformanceBenchmarkStatus();
     
@@ -113,7 +245,24 @@ export const performanceRouter = router({
   }),
 
   // Reset performance counters (for testing/admin use)
-  reset: publicProcedure.mutation(() => {
+  reset: publicProcedure
+    .meta({
+      openapi: {
+        method: 'POST',
+        path: '/performance/reset',
+        summary: 'Reset performance counters',
+        description: 'Resets all performance counters and metrics (for testing/admin use)',
+        tags: ['Performance'],
+        protect: false
+      }
+    })
+    .input(z.void())
+    .output(z.object({
+      success: z.boolean(),
+      message: z.string(),
+      timestamp: z.string()
+    }))
+    .mutation(() => {
     healthMonitor.reset();
     return {
       success: true,

@@ -1,0 +1,2 @@
+# This file ensures the API docs directory is tracked by git
+# The schemas/ and endpoints/ subdirectories will contain auto-generated content
