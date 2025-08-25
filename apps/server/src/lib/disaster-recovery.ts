@@ -214,7 +214,7 @@ export class DisasterRecoveryManager {
 
       const endTime = Date.now();
       result.endTime = new Date(endTime);
-      result.rto = endTime - startTime;
+      result.rto = Math.max(endTime - startTime, 1); // 确保RTO至少为1ms
 
       // 验证 RTO 要求
       if (result.rto > 60 * 60 * 1000) { // 1小时
@@ -229,7 +229,7 @@ export class DisasterRecoveryManager {
     } catch (error) {
       const endTime = Date.now();
       result.endTime = new Date(endTime);
-      result.rto = endTime - startTime;
+      result.rto = Math.max(endTime - startTime, 1); // 确保RTO至少为1ms
       result.errors.push(`Restore failed: ${error}`);
       return result;
     }
