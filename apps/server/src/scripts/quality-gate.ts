@@ -139,8 +139,8 @@ async function runQualityChecks(): Promise<QualityGateResult> {
 		{
 			name: "单元测试",
 			command: isCI 
-				? "vitest run --reporter=basic --passWithNoTests --no-threads" // 在CI中禁用多线程避免资源争用
-				: "vitest run --reporter=basic --passWithNoTests",
+				? "bun test --run --passWithNoTests" // 在CI中使用bun test
+				: "bun test --run --passWithNoTests",
 			parallel: false,
 		},
 	];

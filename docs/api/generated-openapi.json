@@ -144,6 +144,491 @@
           }
         }
       }
+    },
+    "/performance/metrics": {
+      "get": {
+        "operationId": "performance-metrics",
+        "summary": "Get current performance metrics",
+        "description": "Returns current performance metrics, benchmarks, and alert status",
+        "tags": [
+          "Performance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "responseTime": {
+                      "type": "object",
+                      "properties": {
+                        "current": {
+                          "type": "number"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "benchmark": {
+                          "type": "string"
+                        },
+                        "thresholds": {}
+                      },
+                      "required": [
+                        "current",
+                        "status",
+                        "benchmark",
+                        "thresholds"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "requests": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number"
+                        },
+                        "errors": {
+                          "type": "number"
+                        },
+                        "errorRate": {
+                          "type": "number"
+                        },
+                        "successRate": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "errors",
+                        "errorRate",
+                        "successRate"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "alerts": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean"
+                        },
+                        "reasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "count": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "active",
+                        "reasons",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "benchmarks": {}
+                  },
+                  "required": [
+                    "timestamp",
+                    "responseTime",
+                    "requests",
+                    "alerts",
+                    "benchmarks"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/performance/benchmarks": {
+      "get": {
+        "operationId": "performance-benchmarks",
+        "summary": "Get performance benchmark comparison",
+        "description": "Returns performance benchmark definitions and current status",
+        "tags": [
+          "Performance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current": {},
+                    "definitions": {
+                      "type": "object",
+                      "properties": {
+                        "basic_operations": {
+                          "type": "object",
+                          "properties": {
+                            "threshold": {
+                              "type": "number"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "examples": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "threshold",
+                            "description",
+                            "examples"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "complex_queries": {
+                          "type": "object",
+                          "properties": {
+                            "threshold": {
+                              "type": "number"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "examples": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "threshold",
+                            "description",
+                            "examples"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "critical_threshold": {
+                          "type": "object",
+                          "properties": {
+                            "threshold": {
+                              "type": "number"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "action": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "threshold",
+                            "description",
+                            "action"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "basic_operations",
+                        "complex_queries",
+                        "critical_threshold"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "current",
+                    "definitions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/performance/history": {
+      "get": {
+        "operationId": "performance-history",
+        "summary": "Get performance history",
+        "description": "Returns performance history data with statistics and percentiles",
+        "tags": [
+          "Performance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "responseTimes": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "averageResponseTime": {
+                      "type": "number"
+                    },
+                    "requestCount": {
+                      "type": "number"
+                    },
+                    "errorCount": {
+                      "type": "number"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "statistics": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "number"
+                        },
+                        "min": {
+                          "type": "number"
+                        },
+                        "max": {
+                          "type": "number"
+                        },
+                        "percentiles": {
+                          "type": "object",
+                          "properties": {
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "p95": {
+                              "type": "number"
+                            },
+                            "p99": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "p50",
+                            "p90",
+                            "p95",
+                            "p99"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "min",
+                        "max",
+                        "percentiles"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "responseTimes",
+                    "averageResponseTime",
+                    "requestCount",
+                    "errorCount",
+                    "timestamp",
+                    "statistics"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/performance/alerts": {
+      "get": {
+        "operationId": "performance-alerts",
+        "summary": "Get current alert status",
+        "description": "Returns current alert status and performance monitoring alerts",
+        "tags": [
+          "Performance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "hasAlerts": {
+                      "type": "boolean"
+                    },
+                    "alertCount": {
+                      "type": "number"
+                    },
+                    "alerts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "severity": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "severity",
+                          "message",
+                          "timestamp"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "performanceStatus": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "benchmark": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message",
+                        "benchmark"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "timestamp",
+                    "hasAlerts",
+                    "alertCount",
+                    "alerts",
+                    "performanceStatus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/performance/reset": {
+      "post": {
+        "operationId": "performance-reset",
+        "summary": "Reset performance counters",
+        "description": "Resets all performance counters and metrics (for testing/admin use)",
+        "tags": [
+          "Performance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "timestamp"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
