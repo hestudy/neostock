@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { testClient } from '../helpers/test-client';
 
 describe('API Performance Tests - Response Time Validation', () => {

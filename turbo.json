@@ -13,6 +13,9 @@
 		"test:coverage": {
 			"dependsOn": ["^test:coverage"]
 		},
+		"test:performance": {
+			"dependsOn": ["^test:performance"]
+		},
 		"lint": {
 			"dependsOn": ["^lint"]
 		},
