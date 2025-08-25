@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from "vitest";
 import { appRouter, type AppRouter } from '../../routers/index';
 
 describe('Performance Router', () => {
