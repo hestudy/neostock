@@ -4,7 +4,11 @@ import { stock_daily } from '../db/schema/stocks';
 import { lt, count } from 'drizzle-orm';
 
 type SqliteRow = Record<string, string | number>;
-type DatabaseRunResult = { changes: number; lastInsertRowid?: number };
+
+interface DatabaseRunResult {
+	changes?: number;
+	lastInsertRowid?: number;
+}
 
 interface DataCleanupConfig {
 	daily_data_retention_days: number;
@@ -106,7 +110,7 @@ export class DataStorageOptimizer {
 						LIMIT ${batchSize}
 					`);
 
-					const deletedCount = (deleted as any).changes || 0;
+					const deletedCount = (deleted as DatabaseRunResult).changes || 0;
 					totalDeleted += deletedCount;
 
 					if (deletedCount === 0) break; // 没有更多记录可删除
@@ -272,7 +276,7 @@ export class DataStorageOptimizer {
 				WHERE expiresAt < ${cutoffTime}
 			`);
 
-			const deletedCount = (expiredVerifications as any).changes || 0;
+			const deletedCount = (expiredVerifications as DatabaseRunResult).changes || 0;
 			console.log(`🗑️  已清理 ${deletedCount} 个过期验证码`);
 
 			return deletedCount;
@@ -296,7 +300,7 @@ export class DataStorageOptimizer {
 				WHERE created_at < ${cutoffTime} AND status IN ('completed', 'failed', 'rolled_back')
 			`);
 
-			totalCleaned += (migrationLogs as any).changes || 0;
+			totalCleaned += (migrationLogs as DatabaseRunResult).changes || 0;
 
 			console.log(`🗑️  已清理 ${totalCleaned} 条旧日志记录`);
 			return totalCleaned;
@@ -317,7 +321,7 @@ export class DataStorageOptimizer {
 				WHERE created_at < ${cutoffTime}
 			`);
 
-			const deletedCount = (oldBackups as any).changes || 0;
+			const deletedCount = (oldBackups as DatabaseRunResult).changes || 0;
 			console.log(`🗑️  已清理 ${deletedCount} 个旧备份记录`);
 
 			return deletedCount;
@@ -398,7 +402,7 @@ export class DataStorageOptimizer {
 
 			const yearDist: Record<string, number> = {};
 			for (const row of yearDistribution) {
-				const rowData = row as any;
+				const rowData = row as SqliteRow;
 				yearDist[rowData.year as string] = rowData.count as number;
 			}
 

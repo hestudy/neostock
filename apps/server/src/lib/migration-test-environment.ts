@@ -149,7 +149,7 @@ export class MigrationTestEnvironmentManager {
 			throw new Error('迁移器未初始化');
 		}
 
-		const db = (env.migrator as any).db;
+		const db = env.migrator!.getDbForTesting() as DatabaseInstance;
 
 		switch (env.dataSet) {
 			case 'empty':
@@ -411,7 +411,7 @@ export class MigrationTestEnvironmentManager {
 		return result;
 	}
 
-	private async runTestStep(result: TestResult, stepName: string, testFn: () => Promise<any>): Promise<void> {
+	private async runTestStep(result: TestResult, stepName: string, testFn: () => Promise<Record<string, unknown>>): Promise<void> {
 		const stepStartTime = Date.now();
 		result.summary.total_steps++;
 
@@ -444,8 +444,8 @@ export class MigrationTestEnvironmentManager {
 		}
 	}
 
-	private async runFunctionalTests(env: TestEnvironment): Promise<any> {
-		const db = (env.migrator as any).db;
+	private async runFunctionalTests(env: TestEnvironment): Promise<Record<string, unknown>> {
+		const db = env.migrator!.getDbForTesting() as DatabaseInstance;
 		const tests = [];
 
 		// 测试股票表功能
@@ -474,11 +474,11 @@ export class MigrationTestEnvironmentManager {
 			`).run(['000001.SZ', '000001', '平安银行', '深圳', '银行', '主板', '19910403', '1', now, now]);
 
 			// 查询验证
-			const stock = db.prepare('SELECT * FROM stocks WHERE ts_code = ?').get(['000001.SZ']) as any;
+			const stock = db.prepare('SELECT * FROM stocks WHERE ts_code = ?').get(['000001.SZ']) as Record<string, unknown> | undefined;
 			
 			return {
 				test: 'stock_table_operations',
-				success: stock && stock.name === '平安银行',
+				success: Boolean(stock && stock.name === '平安银行'),
 				details: { inserted: 1, queried: Boolean(stock) }
 			};
 		} catch (error) {
@@ -504,7 +504,7 @@ export class MigrationTestEnvironmentManager {
 			const favorite = db.prepare(`
 				SELECT * FROM user_stock_favorites 
 				WHERE user_id = ? AND ts_code = ?
-			`).get(['test-user-1', '000001.SZ']) as any;
+			`).get(['test-user-1', '000001.SZ']) as Record<string, unknown> | undefined;
 
 			return {
 				test: 'user_favorites_operations',
@@ -529,7 +529,7 @@ export class MigrationTestEnvironmentManager {
 				JOIN user u ON u.id = usf.user_id
 				JOIN stocks s ON s.ts_code = usf.ts_code
 				WHERE usf.user_id = ?
-			`).get(['test-user-1']) as any;
+			`).get(['test-user-1']) as Record<string, unknown> | undefined;
 
 			return {
 				test: 'data_relationships',
@@ -545,8 +545,8 @@ export class MigrationTestEnvironmentManager {
 		}
 	}
 
-	private async runPerformanceTests(env: TestEnvironment): Promise<any> {
-		const db = (env.migrator as any).db;
+	private async runPerformanceTests(env: TestEnvironment): Promise<Record<string, unknown>> {
+		const db = env.migrator!.getDbForTesting() as DatabaseInstance;
 		const results: Record<string, unknown>[] = [];
 
 		// 测试查询性能
@@ -560,7 +560,7 @@ export class MigrationTestEnvironmentManager {
 			const startTime = performance.now();
 			
 			try {
-				db.prepare(test.query).get(test.params) as any;
+				db.prepare(test.query).get(test.params);
 				const duration = performance.now() - startTime;
 				
 				results.push({
@@ -580,7 +580,7 @@ export class MigrationTestEnvironmentManager {
 
 		return {
 			performance_tests: results,
-			average_duration: results.reduce((sum, r) => sum + ((r as any).duration || 0), 0) / results.length,
+			average_duration: results.reduce((sum, r) => sum + (typeof r.duration === 'number' ? r.duration : 0), 0) / results.length,
 			passed_tests: results.filter(r => r.success).length,
 			total_tests: results.length
 		};

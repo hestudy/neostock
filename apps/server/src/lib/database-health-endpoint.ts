@@ -65,9 +65,9 @@ interface HealthCheckResult {
 
 interface DetailedHealthCheck extends HealthCheckResult {
 	database_details: {
-		pragma_settings: Record<string, any>;
+		pragma_settings: Record<string, unknown>;
 		table_stats: Record<string, number>;
-		index_stats: Record<string, any>;
+		index_stats: Record<string, unknown>;
 		recent_queries: Array<{
 			query: string;
 			duration: number;

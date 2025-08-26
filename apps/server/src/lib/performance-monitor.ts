@@ -153,7 +153,7 @@ export function createPerformanceMiddleware() {
 		const { path, type } = opts;
 		
 		try {
-			const result = await (opts.next as any)();
+			const result = await (opts.next as () => Promise<unknown>)();
 			const duration = performance.now() - startTime;
 			
 			performanceMonitor.recordQuery(

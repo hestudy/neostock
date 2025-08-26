@@ -169,7 +169,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 			const backupPath = join(this.BACKUP_DIR, backupFileName);
 
 			// 对于文件数据库，复制数据库文件
-			const dbPath = (this.database as any).filename;
+			const dbPath = (this.database as DatabaseInstance & { filename?: string }).filename;
 			if (dbPath && dbPath !== ':memory:') {
 				await fs.copyFile(dbPath, backupPath);
 				
@@ -203,10 +203,10 @@ export class EnhancedMigrator extends DatabaseMigrator {
 	// 恢复数据库备份
 	async restoreFromBackup(backupPath: string): Promise<boolean> {
 		try {
-			const dbPath = (this.database as any).filename;
+			const dbPath = (this.database as DatabaseInstance & { filename?: string }).filename;
 			if (dbPath && dbPath !== ':memory:') {
 				// 关闭当前数据库连接
-				(this.database as any).close();
+				this.database.close();
 				
 				// 恢复备份文件
 				await fs.copyFile(backupPath, dbPath);
@@ -253,7 +253,9 @@ export class EnhancedMigrator extends DatabaseMigrator {
 			const pendingMigrations = [];
 			const db = this.database;
 			
-			for (const migration of (this as any).migrations) {
+			// Access protected migrations property via reflection
+			const migrations = (this as unknown as { migrations: Migration[] }).migrations;
+			for (const migration of migrations) {
 				const existing = db.prepare('SELECT id FROM __migrations WHERE id = ?').get(migration.id);
 				if (!existing) {
 					pendingMigrations.push(migration);
@@ -369,7 +371,8 @@ export class EnhancedMigrator extends DatabaseMigrator {
 
 	// 执行单个迁移
 	private async executeSingleMigration(migration: Migration): Promise<void> {
-		const wrapper = (this as any).wrapper;
+		// Access protected wrapper property via reflection
+		const wrapper = (this as unknown as { wrapper: DatabaseWrapper }).wrapper;
 		const db = this.database;
 		
 		try {
@@ -385,7 +388,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 				console.log('🔄 迁移失败，事务已回滚');
 			} catch (rollbackError) {
 				// 忽略"no transaction is active"错误，因为事务可能已经自动回滚
-				if (!(rollbackError as any).message?.includes('no transaction is active')) {
+				if (rollbackError instanceof Error && !rollbackError.message?.includes('no transaction is active')) {
 					console.error('❌ 事务回滚失败:', rollbackError);
 				}
 			}
@@ -477,10 +480,13 @@ export class EnhancedMigrator extends DatabaseMigrator {
 
 			for (const backup of oldBackups) {
 				try {
-					await fs.unlink((backup as any).backup_path);
-					console.log(`🗑️  已删除旧备份: ${(backup as any).backup_path}`);
+					// Type guard to ensure backup has required properties
+					const backupPath = (backup as Record<string, unknown>).backup_path as string;
+					await fs.unlink(backupPath);
+					console.log(`🗑️  已删除旧备份: ${backupPath}`);
 				} catch (error) {
-					console.warn(`⚠️  删除备份文件失败: ${(backup as any).backup_path}`, error);
+					const backupPath = (backup as Record<string, unknown>).backup_path as string;
+					console.warn(`⚠️  删除备份文件失败: ${backupPath}`, error);
 				}
 			}
 

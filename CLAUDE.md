@@ -31,6 +31,7 @@ bun dev:server                # 仅启动后端
 cd apps/server && bun db:local  # 启动本地 SQLite 数据库
 bun db:push                     # 推送 schema 变更到数据库
 bun db:studio                   # 打开数据库可视化界面
+bun db:generate                 # 生成数据库迁移文件
 bun db:migrate                  # 应用数据库迁移
 ```
 
@@ -40,8 +41,12 @@ bun lint                      # 运行 ESLint
 bun lint:fix                  # 自动修复 ESLint 问题
 bun check-types               # 类型检查
 bun test                      # 运行所有测试
+bun test:ci                   # CI 模式运行测试
 bun test:coverage             # 运行测试并生成覆盖率报告
+bun test:performance          # 运行性能基准测试
 bun test:e2e                  # 运行端到端测试
+bun test:e2e:ui               # UI 模式运行 E2E 测试
+bun test:e2e:report           # 显示 Playwright 测试报告
 ```
 
 ### 质量门控 (在 apps/server 目录下)
@@ -50,6 +55,8 @@ bun run quality:gate          # 质量门控检查
 bun run security:gate         # 安全门控检查
 bun run pre-deploy           # 部署前验证
 bun run docs:validate        # 文档验证
+bun run docs:validate:enhanced # 增强文档验证
+bun run docs:check-changes   # 检查API变更
 ```
 
 ## 项目结构
@@ -58,10 +65,23 @@ bun run docs:validate        # 文档验证
 neostock/
 ├── apps/
 │   ├── web/          # React 前端应用 (端口 3001)
+│   │   ├── src/
+│   │   │   ├── components/  # UI 组件 (shadcn/ui)
+│   │   │   ├── routes/      # TanStack Router 路由
+│   │   │   ├── hooks/       # 自定义 React hooks
+│   │   │   ├── lib/         # 工具函数和配置
+│   │   │   └── utils/       # tRPC 客户端配置
+│   │   └── vite.config.ts   # Vite 构建配置
 │   └── server/       # Hono API 服务器 (端口 3000)
-├── docs/             # 项目文档和架构设计
+│       ├── src/
+│       │   ├── db/          # Drizzle 数据库配置和迁移
+│       │   ├── routers/     # tRPC 路由定义
+│       │   ├── lib/         # 服务器工具和中间件
+│       │   ├── scripts/     # 质量门控和部署脚本
+│       │   └── __tests__/   # 测试文件
+│       └── docs/api/        # OpenAPI 文档
 ├── tests/e2e/        # Playwright E2E 测试
-└── qa/               # QA 评估和测试设计
+└── docs/             # 项目文档和架构设计
 ```
 
 ## 关键架构特点

@@ -120,10 +120,10 @@ describe('Stock Database Schema Tests', () => {
 			expect(result.changes).toBe(1);
 			
 			// 验证数据插入成功
-			const stock = testDb.prepare('SELECT * FROM stocks WHERE ts_code = ?').get('000001.SZ') as any;
+			const stock = testDb.prepare('SELECT * FROM stocks WHERE ts_code = ?').get('000001.SZ') as Record<string, unknown> | undefined;
 			expect(stock).toBeDefined();
-			expect(stock.name).toBe('平安银行');
-			expect(stock.industry).toBe('银行');
+			expect(stock?.name).toBe('平安银行');
+			expect(stock?.industry).toBe('银行');
 		});
 
 		it('应该能插入日线数据', () => {
@@ -142,9 +142,9 @@ describe('Stock Database Schema Tests', () => {
 			
 			// 验证数据插入成功
 			const dailyData = testDb.prepare('SELECT * FROM stock_daily WHERE ts_code = ? AND trade_date = ?')
-				.get('000001.SZ', '20231201') as any;
+				.get('000001.SZ', '20231201') as Record<string, unknown> | undefined;
 			expect(dailyData).toBeDefined();
-			expect(dailyData.close).toBe(12.75);
+			expect(dailyData?.close).toBe(12.75);
 		});
 
 		it('应该能创建用户收藏关系', () => {

@@ -42,7 +42,7 @@ export interface ConnectionStatus {
 }
 
 // 查询结果接口
-export interface QueryResult<T = any> {
+export interface QueryResult<T = unknown> {
 	data: T;
 	executionTime: number;
 	affectedRows?: number;
@@ -90,6 +90,8 @@ export class LibSQLAdapter implements DatabaseAdapter {
 				...this.config.options
 			});
 
+			// Type assertion is necessary here due to drizzle's typing requirements
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			this.db = drizzle(this.client as any, { schema });
 
 			// 应用 SQLite 优化配置
@@ -117,7 +119,8 @@ export class LibSQLAdapter implements DatabaseAdapter {
 
 		for (const optimization of optimizations) {
 			try {
-				await (this.db as any).run(sql.raw(optimization));
+				// Execute SQLite optimization pragma
+				await (this.db as { run: (query: ReturnType<typeof sql.raw>) => Promise<unknown> }).run(sql.raw(optimization));
 			} catch (error) {
 				console.warn(`⚠️  SQLite 优化配置失败: ${optimization}`, error);
 			}
@@ -127,7 +130,8 @@ export class LibSQLAdapter implements DatabaseAdapter {
 	async disconnect(): Promise<void> {
 		try {
 			if (this.client) {
-				await (this.client as any).close();
+				// Close the libsql client connection
+				await (this.client as { close: () => Promise<void> }).close();
 			}
 			console.log(`✅ ${this.config.type.toUpperCase()} 数据库连接已关闭`);
 		} catch (error) {
@@ -144,10 +148,10 @@ export class LibSQLAdapter implements DatabaseAdapter {
 			let result: unknown;
 			if (params.length > 0) {
 				// 参数化查询
-				result = await (this.db as any).all(sql.raw(queryString));
+				result = await (this.db as { all: (query: ReturnType<typeof sql.raw>) => Promise<SqliteRow[]> }).all(sql.raw(queryString));
 			} else {
 				// 简单查询
-				result = await (this.db as any).all(sql.raw(queryString));
+				result = await (this.db as { all: (query: ReturnType<typeof sql.raw>) => Promise<SqliteRow[]> }).all(sql.raw(queryString));
 			}
 
 			const executionTime = performance.now() - startTime;
@@ -197,7 +201,7 @@ export class LibSQLAdapter implements DatabaseAdapter {
 		
 		try {
 			// 开启事务
-			await (this.db as any).run(sql`BEGIN TRANSACTION`);
+			await (this.db as { run: (query: ReturnType<typeof sql>) => Promise<unknown> }).run(sql`BEGIN TRANSACTION`);
 
 			// 设置事务隔离级别（如果支持）
 			if (options.isolationLevel) {
@@ -209,7 +213,7 @@ export class LibSQLAdapter implements DatabaseAdapter {
 			const result = await callback(this);
 
 			// 提交事务
-			await (this.db as any).run(sql`COMMIT`);
+			await (this.db as { run: (query: ReturnType<typeof sql>) => Promise<unknown> }).run(sql`COMMIT`);
 
 			const executionTime = performance.now() - startTime;
 			performanceMonitor.recordQuery('db_transaction', executionTime, 'TRANSACTION_COMMIT');
@@ -220,7 +224,7 @@ export class LibSQLAdapter implements DatabaseAdapter {
 		} catch (error) {
 			// 回滚事务
 			try {
-				await (this.db as any).run(sql`ROLLBACK`);
+				await (this.db as { run: (query: ReturnType<typeof sql>) => Promise<unknown> }).run(sql`ROLLBACK`);
 			} catch (rollbackError) {
 				console.error('❌ 事务回滚失败:', rollbackError);
 			}
@@ -284,8 +288,8 @@ export class LibSQLAdapter implements DatabaseAdapter {
 
 			if (this.config.type === DatabaseType.SQLITE) {
 				// SQLite 特定优化
-				await (this.db as any).run(sql`ANALYZE`);
-				await (this.db as any).run(sql`VACUUM`);
+				await (this.db as { run: (query: ReturnType<typeof sql>) => Promise<unknown> }).run(sql`ANALYZE`);
+				await (this.db as { run: (query: ReturnType<typeof sql>) => Promise<unknown> }).run(sql`VACUUM`);
 				console.log('✅ SQLite 数据库优化完成 (ANALYZE & VACUUM)');
 			}
 
