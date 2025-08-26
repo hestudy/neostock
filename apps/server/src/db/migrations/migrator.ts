@@ -2,7 +2,7 @@
 interface DatabaseInterface {
   exec(query: string): unknown;
   prepare(query: string): {
-    all: () => unknown[];
+    all: (...args: unknown[]) => unknown[];
     run: (...args: unknown[]) => { changes: number; lastInsertRowid: number };
     get: (...args: unknown[]) => unknown;
   };
@@ -361,5 +361,10 @@ export class DatabaseMigrator {
 
   close() {
     this.db.close();
+  }
+  
+  // 仅用于测试的数据库访问方法
+  public getDbForTesting(): DatabaseInterface {
+    return this.db;
   }
 }
