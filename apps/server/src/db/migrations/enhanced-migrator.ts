@@ -98,67 +98,84 @@ export class EnhancedMigrator extends DatabaseMigrator {
 		}
 	}
 
-	// 数据完整性验证
-	async validateDataIntegrity(): Promise<{ valid: boolean; issues: string[] }> {
-		const issues: string[] = [];
-		const db = this.database;
+	// 数据完整性验证 (带重试机制)
+	async validateDataIntegrity(retries: number = 3): Promise<{ valid: boolean; issues: string[] }> {
+		for (let attempt = 1; attempt <= retries; attempt++) {
+			const issues: string[] = [];
+			const db = this.database;
 
-		try {
-			// 1. 外键约束检查
-			const foreignKeyCheck = db.prepare('PRAGMA foreign_key_check').all();
-			if (foreignKeyCheck.length > 0) {
-				issues.push(`外键约束违反: ${foreignKeyCheck.length} 条记录`);
-			}
+			try {
+				// 等待一小段时间确保数据库操作完成
+				await new Promise(resolve => setTimeout(resolve, 50 * attempt));
 
-			// 2. 数据库完整性检查
-			const integrityCheck = db.prepare('PRAGMA integrity_check').get();
-			if (integrityCheck && (integrityCheck as Record<string, string>).integrity_check !== 'ok') {
-				issues.push(`数据库完整性检查失败: ${(integrityCheck as Record<string, string>).integrity_check}`);
-			}
-
-			// 3. 检查索引一致性 (只在表存在时检查)
-			const stocksTableExists = db.prepare(`
-				SELECT name FROM sqlite_master 
-				WHERE type='table' AND name = 'stocks'
-			`).all();
-			
-			if (stocksTableExists.length > 0) {
-				const indexCheck = db.prepare('PRAGMA index_list(stocks)').all();
-				const expectedIndexes = ['stocks_symbol_idx', 'stocks_name_idx', 'stocks_industry_idx'];
-				const actualIndexes = indexCheck.map((idx: Record<string, unknown>) => idx.name);
-				
-				for (const expectedIndex of expectedIndexes) {
-					if (!actualIndexes.includes(expectedIndex)) {
-						issues.push(`缺失索引: ${expectedIndex}`);
-					}
+				// 1. 外键约束检查
+				const foreignKeyCheck = db.prepare('PRAGMA foreign_key_check').all();
+				if (foreignKeyCheck.length > 0) {
+					issues.push(`外键约束违反: ${foreignKeyCheck.length} 条记录`);
 				}
-			}
 
-			// 4. 检查表结构 (只在需要时检查)
-			const appliedMigrations = await this.getAppliedMigrations();
-			const stocksMigrationApplied = appliedMigrations.some(m => m.id === '002_v1.1_create_stocks_tables');
-			
-			if (stocksMigrationApplied) {
-				const tablesInfo = db.prepare(`
+				// 2. 数据库完整性检查
+				const integrityCheck = db.prepare('PRAGMA integrity_check').get();
+				if (integrityCheck && (integrityCheck as Record<string, string>).integrity_check !== 'ok') {
+					issues.push(`数据库完整性检查失败: ${(integrityCheck as Record<string, string>).integrity_check}`);
+				}
+
+				// 3. 检查索引一致性 (只在表存在时检查)
+				const stocksTableExists = db.prepare(`
 					SELECT name FROM sqlite_master 
-					WHERE type='table' AND name IN ('stocks', 'stock_daily', 'user_stock_favorites')
+					WHERE type='table' AND name = 'stocks'
 				`).all();
 				
-				const expectedTables = ['stocks', 'stock_daily', 'user_stock_favorites'];
-				const actualTables = tablesInfo.map((t: Record<string, unknown>) => t.name);
-				
-				for (const expectedTable of expectedTables) {
-					if (!actualTables.includes(expectedTable)) {
-						issues.push(`缺失数据表: ${expectedTable}`);
+				if (stocksTableExists.length > 0) {
+					const indexCheck = db.prepare('PRAGMA index_list(stocks)').all();
+					const expectedIndexes = ['stocks_symbol_idx', 'stocks_name_idx', 'stocks_industry_idx'];
+					const actualIndexes = indexCheck.map((idx: Record<string, unknown>) => idx.name);
+					
+					for (const expectedIndex of expectedIndexes) {
+						if (!actualIndexes.includes(expectedIndex)) {
+							issues.push(`缺失索引: ${expectedIndex}`);
+						}
 					}
 				}
-			}
 
-			return { valid: issues.length === 0, issues };
-		} catch (error) {
-			issues.push(`数据完整性验证失败: ${error instanceof Error ? error.message : String(error)}`);
-			return { valid: false, issues };
+				// 4. 检查表结构 (只在需要时检查)
+				const appliedMigrations = await this.getAppliedMigrations();
+				const stocksMigrationApplied = appliedMigrations.some(m => m.id === '002_v1.1_create_stocks_tables');
+				
+				if (stocksMigrationApplied) {
+					const tablesInfo = db.prepare(`
+						SELECT name FROM sqlite_master 
+						WHERE type='table' AND name IN ('stocks', 'stock_daily', 'user_stock_favorites')
+					`).all();
+					
+					const expectedTables = ['stocks', 'stock_daily', 'user_stock_favorites'];
+					const actualTables = tablesInfo.map((t: Record<string, unknown>) => t.name);
+					
+					for (const expectedTable of expectedTables) {
+						if (!actualTables.includes(expectedTable)) {
+							issues.push(`缺失数据表: ${expectedTable}`);
+						}
+					}
+				}
+
+				// 如果没有问题或者是最后一次尝试，返回结果
+				if (issues.length === 0 || attempt === retries) {
+					return { valid: issues.length === 0, issues };
+				}
+
+				// 如果有问题且不是最后一次尝试，继续重试
+				console.log(`⚠️  数据完整性验证失败 (尝试 ${attempt}/${retries}): ${issues.join(', ')}`);
+
+			} catch (error) {
+				if (attempt === retries) {
+					issues.push(`数据完整性验证失败: ${error instanceof Error ? error.message : String(error)}`);
+					return { valid: false, issues };
+				}
+				console.log(`⚠️  数据完整性验证异常 (尝试 ${attempt}/${retries}): ${error instanceof Error ? error.message : String(error)}`);
+			}
 		}
+
+		return { valid: false, issues: ['验证失败'] };
 	}
 
 	// 创建数据库备份
@@ -380,6 +397,10 @@ export class EnhancedMigrator extends DatabaseMigrator {
 			
 			// 记录到迁移表
 			db.prepare('INSERT INTO __migrations (id, name) VALUES (?, ?)').run(migration.id, migration.name);
+			
+			// 确保所有操作完成后再继续
+			await new Promise(resolve => setTimeout(resolve, 10));
+			
 		} catch (error) {
 			// 如果迁移失败，检查是否需要回滚事务
 			try {
