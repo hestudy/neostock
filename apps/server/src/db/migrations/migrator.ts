@@ -46,6 +46,14 @@ try {
         };
       }
       
+      if (query.includes('CREATE TABLE IF NOT EXISTS __migration_logs')) {
+        this.mockTables['__migration_logs'] = [];
+        this.mockSchema['__migration_logs'] = { 
+          columns: ['id', 'name', 'status', 'started_at', 'completed_at', 'error_message', 'backup_path', 'attempt_count', 'created_at'], 
+          indexes: [] 
+        };
+      }
+      
       // 模拟股票相关表创建
       if (query.includes('CREATE TABLE IF NOT EXISTS stocks')) {
         this.mockTables['stocks'] = [];
@@ -175,13 +183,34 @@ try {
             return []; // 返回空数组表示没有外键违反
           }
           if (query.includes('SELECT name FROM sqlite_master')) {
-            // 返回已创建的表名
-            const tableNames = Object.keys(this.mockTables).map(name => ({ name }));
-            if (query.includes('stocks') || query.includes('stock_daily') || query.includes('user_stock_favorites')) {
-              // 筛选特定表
-              const targetTables = ['stocks', 'stock_daily', 'user_stock_favorites'];
-              return tableNames.filter(t => targetTables.includes(t.name));
+            if (query.includes("type='index'")) {
+              // 返回已创建的索引名
+              const allIndexes: { name: string }[] = [];
+              for (const tableName in this.mockSchema) {
+                const schema = this.mockSchema[tableName];
+                for (const indexName of schema.indexes) {
+                  allIndexes.push({ name: indexName });
+                }
+              }
+              
+              // 如果查询包含LIKE过滤条件
+              if (query.includes("LIKE 'stock%'")) {
+                return allIndexes.filter(idx => idx.name.startsWith('stock'));
+              }
+              
+              return allIndexes;
+            } else if (query.includes("type='table'")) {
+              // 返回已创建的表名
+              const tableNames = Object.keys(this.mockTables).map(name => ({ name }));
+              if (query.includes('stocks') || query.includes('stock_daily') || query.includes('user_stock_favorites')) {
+                // 筛选特定表
+                const targetTables = ['stocks', 'stock_daily', 'user_stock_favorites'];
+                return tableNames.filter(t => targetTables.includes(t.name));
+              }
+              return tableNames;
             }
+            // 默认返回表名（向后兼容）
+            const tableNames = Object.keys(this.mockTables).map(name => ({ name }));
             return tableNames;
           }
           if (query.includes('SELECT * FROM stocks WHERE industry = ?')) {
@@ -192,6 +221,11 @@ try {
           }
           if (query.includes('SELECT COUNT(*) as count FROM stocks')) {
             return [{ count: (this.mockTables['stocks'] || []).length }];
+          }
+          if (query.includes('SELECT * FROM __migration_logs')) {
+            // 按 created_at DESC 排序
+            const logs = (this.mockTables['__migration_logs'] || []) as any[];
+            return logs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
           }
           return [];
         },
@@ -283,6 +317,45 @@ try {
             };
             this.mockTables['user_stock_favorites'] = this.mockTables['user_stock_favorites'] || [];
             this.mockTables['user_stock_favorites'].push(favoriteData);
+          } else if (query.includes('INSERT OR REPLACE INTO __migration_logs')) {
+            // 模拟插入/更新迁移日志
+            const logData = {
+              id: args[0],
+              name: args[1],
+              status: args[2],
+              started_at: args[3],
+              completed_at: args[4] || null,
+              error_message: args[5] || null,
+              backup_path: args[6] || null,
+              attempt_count: args[7] || 1,
+              created_at: Date.now()
+            };
+            this.mockTables['__migration_logs'] = this.mockTables['__migration_logs'] || [];
+            // 移除现有记录（如果存在）
+            this.mockTables['__migration_logs'] = this.mockTables['__migration_logs'].filter(
+              (record) => (record as any).id !== args[0]
+            );
+            this.mockTables['__migration_logs'].push(logData);
+          } else if (query.includes('UPDATE __migration_logs')) {
+            // 模拟更新迁移日志
+            this.mockTables['__migration_logs'] = this.mockTables['__migration_logs'] || [];
+            const logs = this.mockTables['__migration_logs'] as any[];
+            for (const log of logs) {
+              if (log.id === args[args.length - 1]) { // id 通常是最后一个参数
+                if (query.includes('SET status = \'completed\'')) {
+                  log.status = 'completed';
+                  log.completed_at = args[0];
+                } else if (query.includes('SET status = \'failed\'')) {
+                  log.status = 'failed';
+                  log.error_message = args[0];
+                  log.attempt_count = args[1];
+                } else if (query.includes('SET status = \'rolled_back\'')) {
+                  log.status = 'rolled_back';
+                  log.completed_at = args[0];
+                }
+                break;
+              }
+            }
           }
           return { changes: 1, lastInsertRowid: 1 };
         },
