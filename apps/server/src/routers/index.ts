@@ -2,6 +2,7 @@ import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 import { z } from "zod";
 import { performanceRouter } from "./performance";
 import { databaseHealthChecker } from "../lib/database-health";
+import { dataSourcesRouter } from "./data-sources";
 
 export const appRouter = router({
 	healthCheck: publicProcedure
@@ -101,5 +102,7 @@ export const appRouter = router({
 		}),
 	// Performance monitoring routes
 	performance: performanceRouter,
+	// Data sources management routes  
+	dataSources: dataSourcesRouter,
 });
 export type AppRouter = typeof appRouter;
