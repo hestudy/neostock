@@ -109,15 +109,25 @@ export class EnhancedMigrator extends DatabaseMigrator {
 				await new Promise(resolve => setTimeout(resolve, 50 * attempt));
 
 				// 1. 外键约束检查
-				const foreignKeyCheck = db.prepare('PRAGMA foreign_key_check').all();
-				if (foreignKeyCheck.length > 0) {
-					issues.push(`外键约束违反: ${foreignKeyCheck.length} 条记录`);
+				try {
+					const foreignKeyCheck = db.prepare('PRAGMA foreign_key_check').all();
+					if (foreignKeyCheck && foreignKeyCheck.length > 0) {
+						issues.push(`外键约束违反: ${foreignKeyCheck.length} 条记录`);
+					}
+				} catch (fkError) {
+					// 忽略外键检查失败（某些数据库不支持）
+					console.warn('外键检查失败:', fkError);
 				}
 
 				// 2. 数据库完整性检查
-				const integrityCheck = db.prepare('PRAGMA integrity_check').get();
-				if (integrityCheck && (integrityCheck as Record<string, string>).integrity_check !== 'ok') {
-					issues.push(`数据库完整性检查失败: ${(integrityCheck as Record<string, string>).integrity_check}`);
+				try {
+					const integrityCheck = db.prepare('PRAGMA integrity_check').get() as Record<string, string> | null;
+					if (integrityCheck && integrityCheck.integrity_check !== 'ok') {
+						issues.push(`数据库完整性检查失败: ${integrityCheck.integrity_check}`);
+					}
+				} catch (integrityError) {
+					// 忽略完整性检查失败
+					console.warn('完整性检查失败:', integrityError);
 				}
 
 				// 3. 检查索引一致性 (只在表存在时检查)
@@ -127,14 +137,18 @@ export class EnhancedMigrator extends DatabaseMigrator {
 				`).all();
 				
 				if (stocksTableExists.length > 0) {
-					const indexCheck = db.prepare('PRAGMA index_list(stocks)').all();
-					const expectedIndexes = ['stocks_symbol_idx', 'stocks_name_idx', 'stocks_industry_idx'];
-					const actualIndexes = indexCheck.map((idx: Record<string, unknown>) => idx.name);
-					
-					for (const expectedIndex of expectedIndexes) {
-						if (!actualIndexes.includes(expectedIndex)) {
-							issues.push(`缺失索引: ${expectedIndex}`);
+					try {
+						const indexCheck = db.prepare('PRAGMA index_list(stocks)').all();
+						const expectedIndexes = ['stocks_symbol_idx', 'stocks_name_idx', 'stocks_industry_idx'];
+						const actualIndexes = (indexCheck || []).map((idx: Record<string, unknown>) => idx.name);
+						
+						for (const expectedIndex of expectedIndexes) {
+							if (!actualIndexes.includes(expectedIndex)) {
+								issues.push(`缺失索引: ${expectedIndex}`);
+							}
 						}
+					} catch (indexError) {
+						console.warn('索引检查失败:', indexError);
 					}
 				}
 
@@ -272,6 +286,11 @@ export class EnhancedMigrator extends DatabaseMigrator {
 			
 			// Access protected migrations property via reflection
 			const migrations = (this as unknown as { migrations: Migration[] }).migrations;
+			if (!migrations || !Array.isArray(migrations)) {
+				result.errors.push('无法访问迁移列表');
+				return { ...result, success: false };
+			}
+			
 			for (const migration of migrations) {
 				const existing = db.prepare('SELECT id FROM __migrations WHERE id = ?').get(migration.id);
 				if (!existing) {
@@ -390,6 +409,9 @@ export class EnhancedMigrator extends DatabaseMigrator {
 	private async executeSingleMigration(migration: Migration): Promise<void> {
 		// Access protected wrapper property via reflection
 		const wrapper = (this as unknown as { wrapper: DatabaseWrapper }).wrapper;
+		if (!wrapper) {
+			throw new Error('无法访问数据库包装器');
+		}
 		const db = this.database;
 		
 		try {

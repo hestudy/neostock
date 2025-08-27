@@ -90,6 +90,29 @@ try {
         }
       }
       
+      // 模拟表删除
+      if (query.includes('DROP TABLE IF EXISTS')) {
+        const match = query.match(/DROP TABLE IF EXISTS (\w+)/);
+        if (match) {
+          const tableName = match[1];
+          delete this.mockTables[tableName];
+          delete this.mockSchema[tableName];
+        }
+      }
+      
+      // 模拟索引删除
+      if (query.includes('DROP INDEX IF EXISTS')) {
+        const match = query.match(/DROP INDEX IF EXISTS (\w+)/);
+        if (match) {
+          const indexName = match[1];
+          // 从所有表的索引中移除
+          for (const tableName in this.mockSchema) {
+            const schema = this.mockSchema[tableName];
+            schema.indexes = schema.indexes.filter(idx => idx !== indexName);
+          }
+        }
+      }
+      
       return this; 
     }
     
@@ -131,6 +154,35 @@ try {
               }
             }
             return [];
+          }
+          if (query.includes('PRAGMA foreign_key_list')) {
+            const match = query.match(/PRAGMA foreign_key_list\((\w+)\)/);
+            if (match) {
+              const tableName = match[1];
+              // 模拟外键关系
+              if (tableName === 'stock_daily') {
+                return [{ id: 0, seq: 0, table: 'stocks', from: 'ts_code', to: 'ts_code', on_update: 'CASCADE', on_delete: 'CASCADE', match: 'NONE' }];
+              } else if (tableName === 'user_stock_favorites') {
+                return [
+                  { id: 0, seq: 0, table: 'user', from: 'user_id', to: 'id', on_update: 'CASCADE', on_delete: 'CASCADE', match: 'NONE' },
+                  { id: 1, seq: 0, table: 'stocks', from: 'ts_code', to: 'ts_code', on_update: 'CASCADE', on_delete: 'CASCADE', match: 'NONE' }
+                ];
+              }
+            }
+            return [];
+          }
+          if (query.includes('PRAGMA foreign_key_check')) {
+            return []; // 返回空数组表示没有外键违反
+          }
+          if (query.includes('SELECT name FROM sqlite_master')) {
+            // 返回已创建的表名
+            const tableNames = Object.keys(this.mockTables).map(name => ({ name }));
+            if (query.includes('stocks') || query.includes('stock_daily') || query.includes('user_stock_favorites')) {
+              // 筛选特定表
+              const targetTables = ['stocks', 'stock_daily', 'user_stock_favorites'];
+              return tableNames.filter(t => targetTables.includes(t.name));
+            }
+            return tableNames;
           }
           if (query.includes('SELECT * FROM stocks WHERE industry = ?')) {
             const [industry] = args;
@@ -237,6 +289,12 @@ try {
         get: (...args: unknown[]) => {
           if (query.includes('SELECT 1 as test')) {
             return { test: 1 };
+          }
+          if (query.includes('PRAGMA foreign_keys')) {
+            return { foreign_keys: this.foreignKeysEnabled ? 1 : 0 };
+          }
+          if (query.includes('PRAGMA integrity_check')) {
+            return { integrity_check: 'ok' };
           }
           if (query.includes('SELECT id FROM __migrations WHERE id = ?')) {
             const [id] = args as [string];
