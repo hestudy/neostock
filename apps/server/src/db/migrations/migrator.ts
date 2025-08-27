@@ -20,6 +20,8 @@ try {
 } catch {
   DatabaseClass = class MockDatabase implements DatabaseInterface {
     private mockTables: Record<string, unknown[]> = {};
+    private mockSchema: Record<string, { columns: string[]; indexes: string[] }> = {};
+    private foreignKeysEnabled = false;
     
     constructor() {}
     
@@ -28,18 +30,116 @@ try {
       if (query.includes('INVALID SQL STATEMENT')) {
         throw new Error('SQL syntax error: invalid statement');
       }
+      
+      // 模拟外键约束设置
+      if (query.includes('PRAGMA foreign_keys = ON')) {
+        this.foreignKeysEnabled = true;
+        return this;
+      }
+      
       // 模拟表创建
       if (query.includes('CREATE TABLE IF NOT EXISTS __migrations')) {
         this.mockTables['__migrations'] = [];
+        this.mockSchema['__migrations'] = { 
+          columns: ['id', 'name', 'applied_at', 'rollback_sql'], 
+          indexes: [] 
+        };
       }
+      
+      // 模拟股票相关表创建
+      if (query.includes('CREATE TABLE IF NOT EXISTS stocks')) {
+        this.mockTables['stocks'] = [];
+        this.mockSchema['stocks'] = {
+          columns: ['ts_code', 'symbol', 'name', 'area', 'industry', 'market', 'list_date', 'is_hs', 'created_at', 'updated_at'],
+          indexes: []
+        };
+      }
+      
+      if (query.includes('CREATE TABLE IF NOT EXISTS stock_daily')) {
+        this.mockTables['stock_daily'] = [];
+        this.mockSchema['stock_daily'] = {
+          columns: ['id', 'ts_code', 'trade_date', 'open', 'high', 'low', 'close', 'vol', 'amount', 'created_at'],
+          indexes: []
+        };
+      }
+      
+      if (query.includes('CREATE TABLE IF NOT EXISTS user_stock_favorites')) {
+        this.mockTables['user_stock_favorites'] = [];
+        this.mockSchema['user_stock_favorites'] = {
+          columns: ['id', 'user_id', 'ts_code', 'created_at'],
+          indexes: []
+        };
+      }
+      
+      if (query.includes('CREATE TABLE IF NOT EXISTS user')) {
+        this.mockTables['user'] = [];
+        this.mockSchema['user'] = {
+          columns: ['id', 'name', 'email', 'emailVerified', 'createdAt', 'updatedAt'],
+          indexes: []
+        };
+      }
+      
+      // 模拟索引创建
+      if (query.includes('CREATE') && query.includes('INDEX')) {
+        const match = query.match(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s+ON\s+(\w+)/);
+        if (match) {
+          const [, indexName, tableName] = match;
+          if (this.mockSchema[tableName]) {
+            this.mockSchema[tableName].indexes.push(indexName);
+          }
+        }
+      }
+      
       return this; 
     }
     
     prepare(query: string) { 
       return { 
-        all: () => {
+        all: (...args: unknown[]) => {
           if (query.includes('SELECT id, name, applied_at FROM __migrations')) {
             return this.mockTables['__migrations'] || [];
+          }
+          if (query.includes('PRAGMA table_info')) {
+            const match = query.match(/PRAGMA table_info\((\w+)\)/);
+            if (match) {
+              const tableName = match[1];
+              if (this.mockSchema[tableName]) {
+                return this.mockSchema[tableName].columns.map((col, idx) => ({
+                  cid: idx,
+                  name: col,
+                  type: 'TEXT',
+                  notnull: 0,
+                  dflt_value: null,
+                  pk: col === 'id' || col === 'ts_code' ? 1 : 0
+                }));
+              }
+            }
+            return [];
+          }
+          if (query.includes('PRAGMA index_list')) {
+            const match = query.match(/PRAGMA index_list\((\w+)\)/);
+            if (match) {
+              const tableName = match[1];
+              if (this.mockSchema[tableName]) {
+                return this.mockSchema[tableName].indexes.map((idx, i) => ({
+                  seq: i,
+                  name: idx,
+                  unique: idx.includes('unique') ? 1 : 0,
+                  origin: 'c',
+                  partial: 0
+                }));
+              }
+            }
+            return [];
+          }
+          if (query.includes('SELECT * FROM stocks WHERE industry = ?')) {
+            const [industry] = args;
+            return (this.mockTables['stocks'] || []).filter(
+              (stock: any) => stock.industry === industry
+            );
+          }
+          if (query.includes('SELECT COUNT(*) as count FROM stocks')) {
+            return [{ count: (this.mockTables['stocks'] || []).length }];
           }
           return [];
         },
@@ -59,6 +159,78 @@ try {
             this.mockTables['__migrations'] = (this.mockTables['__migrations'] || []).filter(
               (record) => (record as { id: string }).id !== id
             );
+          } else if (query.includes('INSERT INTO stocks')) {
+            // 模拟插入股票数据
+            const now = Date.now();
+            const stockData = {
+              ts_code: args[0],
+              symbol: args[1], 
+              name: args[2],
+              area: args[3],
+              industry: args[4],
+              market: args[5],
+              list_date: args[6],
+              is_hs: args[7],
+              created_at: args[8] || now,
+              updated_at: args[9] || now
+            };
+            this.mockTables['stocks'] = this.mockTables['stocks'] || [];
+            this.mockTables['stocks'].push(stockData);
+          } else if (query.includes('INSERT INTO stock_daily')) {
+            // 检查外键约束
+            if (this.foreignKeysEnabled) {
+              const ts_code = args[0] as string;
+              const stockExists = (this.mockTables['stocks'] || []).some(
+                (stock: any) => stock.ts_code === ts_code
+              );
+              if (!stockExists) {
+                throw new Error('FOREIGN KEY constraint failed');
+              }
+              
+              // 检查唯一约束
+              const trade_date = args[1] as string;
+              const duplicateExists = (this.mockTables['stock_daily'] || []).some(
+                (daily: any) => daily.ts_code === ts_code && daily.trade_date === trade_date
+              );
+              if (duplicateExists) {
+                throw new Error('UNIQUE constraint failed: stock_daily.ts_code, stock_daily.trade_date');
+              }
+            }
+            
+            const dailyData = {
+              id: Date.now(),
+              ts_code: args[0],
+              trade_date: args[1],
+              open: args[2],
+              high: args[3],
+              low: args[4],
+              close: args[5],
+              vol: args[6] || 0,
+              amount: args[7] || 0,
+              created_at: args[8] || Date.now()
+            };
+            this.mockTables['stock_daily'] = this.mockTables['stock_daily'] || [];
+            this.mockTables['stock_daily'].push(dailyData);
+          } else if (query.includes('INSERT INTO user')) {
+            const userData = {
+              id: args[0],
+              name: args[1],
+              email: args[2],
+              emailVerified: args[3],
+              createdAt: args[4],
+              updatedAt: args[5]
+            };
+            this.mockTables['user'] = this.mockTables['user'] || [];
+            this.mockTables['user'].push(userData);
+          } else if (query.includes('INSERT INTO user_stock_favorites')) {
+            const favoriteData = {
+              id: Date.now(),
+              user_id: args[0],
+              ts_code: args[1],
+              created_at: args[2]
+            };
+            this.mockTables['user_stock_favorites'] = this.mockTables['user_stock_favorites'] || [];
+            this.mockTables['user_stock_favorites'].push(favoriteData);
           }
           return { changes: 1, lastInsertRowid: 1 };
         },
@@ -71,6 +243,27 @@ try {
             return (this.mockTables['__migrations'] || []).find(
               (record) => (record as { id: string }).id === id
             ) || null;
+          }
+          if (query.includes('SELECT * FROM stocks WHERE ts_code = ?')) {
+            const [ts_code] = args;
+            return (this.mockTables['stocks'] || []).find(
+              (stock: any) => stock.ts_code === ts_code
+            ) || null;
+          }
+          if (query.includes('SELECT * FROM stock_daily WHERE ts_code = ? AND trade_date = ?')) {
+            const [ts_code, trade_date] = args;
+            return (this.mockTables['stock_daily'] || []).find(
+              (daily: any) => daily.ts_code === ts_code && daily.trade_date === trade_date
+            ) || null;
+          }
+          if (query.includes('SELECT * FROM user_stock_favorites WHERE user_id = ? AND ts_code = ?')) {
+            const [user_id, ts_code] = args;
+            return (this.mockTables['user_stock_favorites'] || []).find(
+              (fav: any) => fav.user_id === user_id && fav.ts_code === ts_code
+            ) || null;
+          }
+          if (query.includes('SELECT COUNT(*) as count FROM stocks')) {
+            return { count: (this.mockTables['stocks'] || []).length };
           }
           return null;
         }

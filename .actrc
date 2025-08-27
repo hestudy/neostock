@@ -1,0 +1,14 @@
+# act 配置文件
+# 使用 GitHub Actions 本地执行器
+
+# 指定容器架构（适配 Apple M 系列芯片）
+--container-architecture linux/amd64
+
+# 指定默认 runner 镜像
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# 启用详细输出
+--verbose
+
+# 设置缓存路径
+--cache-server-path ~/.cache/actcache
