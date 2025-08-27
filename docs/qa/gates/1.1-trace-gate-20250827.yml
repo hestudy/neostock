@@ -1,0 +1,23 @@
+trace:
+  totals:
+    requirements: 6
+    full: 6
+    partial: 0  
+    none: 0
+  coverage_percentage: 100
+  planning_ref: 'docs/qa/assessments/1.1-trace-20250827.md'
+  uncovered: []
+  test_files_validated:
+    - 'apps/server/src/__tests__/db/schema/stocks.test.ts'
+    - 'apps/server/src/__tests__/db/connection-pool.test.ts' 
+    - 'apps/server/src/__tests__/db/pragma-optimization.test.ts'
+    - 'apps/server/src/__tests__/lib/database-health.test.ts'
+    - 'apps/server/src/__tests__/db/migrations/002_v1.1_stocks.test.ts'
+  test_counts:
+    schema_tests: 14
+    connection_pool_tests: 11
+    pragma_optimization_tests: 13
+    health_check_tests: 16
+    migration_tests: 8
+    total: 62
+  notes: '所有6个验收标准都有完整的Given-When-Then测试映射，测试覆盖率达到100%，共62个相关测试用例全部通过验证'

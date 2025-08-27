@@ -1,3 +1,45 @@
+// 类型定义
+interface StockRecord {
+  ts_code: string;
+  symbol: string;
+  name: string;
+  area: string;
+  industry: string;
+  market: string;
+  list_date: string;
+  is_hs: string;
+}
+
+interface DailyRecord {
+  ts_code: string;
+  trade_date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  vol: number;
+  amount: number;
+}
+
+interface UserStockFavoriteRecord {
+  id?: number;
+  user_id: string;
+  ts_code: string;
+  created_at: number;
+}
+
+interface MigrationLogRecord {
+  id: string;
+  name: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'rolled_back';
+  started_at?: number;
+  completed_at?: number;
+  error_message?: string;
+  backup_path?: string;
+  attempt_count: number;
+  created_at?: number;
+}
+
 // 兼容不同环境的数据库导入
 interface DatabaseInterface {
   exec(query: string): unknown;
@@ -19,7 +61,7 @@ try {
   DatabaseClass = bunSqlite.Database;
 } catch {
   DatabaseClass = class MockDatabase implements DatabaseInterface {
-    private mockTables: Record<string, unknown[]> = {};
+    private mockTables: Record<string, (StockRecord | DailyRecord | UserStockFavoriteRecord | MigrationLogRecord | unknown)[]> = {};
     private mockSchema: Record<string, { columns: string[]; indexes: string[] }> = {};
     private foreignKeysEnabled = false;
     
@@ -215,8 +257,8 @@ try {
           }
           if (query.includes('SELECT * FROM stocks WHERE industry = ?')) {
             const [industry] = args;
-            return (this.mockTables['stocks'] || []).filter(
-              (stock: any) => stock.industry === industry
+            return (this.mockTables['stocks'] as StockRecord[] || []).filter(
+              (stock: StockRecord) => stock.industry === industry
             );
           }
           if (query.includes('SELECT COUNT(*) as count FROM stocks')) {
@@ -224,7 +266,7 @@ try {
           }
           if (query.includes('SELECT * FROM __migration_logs')) {
             // 按 created_at DESC 排序
-            const logs = (this.mockTables['__migration_logs'] || []) as any[];
+            const logs = (this.mockTables['__migration_logs'] as MigrationLogRecord[] || []);
             return logs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
           }
           return [];
@@ -266,8 +308,8 @@ try {
             // 检查外键约束
             if (this.foreignKeysEnabled) {
               const ts_code = args[0] as string;
-              const stockExists = (this.mockTables['stocks'] || []).some(
-                (stock: any) => stock.ts_code === ts_code
+              const stockExists = (this.mockTables['stocks'] as StockRecord[] || []).some(
+                (stock: StockRecord) => stock.ts_code === ts_code
               );
               if (!stockExists) {
                 throw new Error('FOREIGN KEY constraint failed');
@@ -275,8 +317,8 @@ try {
               
               // 检查唯一约束
               const trade_date = args[1] as string;
-              const duplicateExists = (this.mockTables['stock_daily'] || []).some(
-                (daily: any) => daily.ts_code === ts_code && daily.trade_date === trade_date
+              const duplicateExists = (this.mockTables['stock_daily'] as DailyRecord[] || []).some(
+                (daily: DailyRecord) => daily.ts_code === ts_code && daily.trade_date === trade_date
               );
               if (duplicateExists) {
                 throw new Error('UNIQUE constraint failed: stock_daily.ts_code, stock_daily.trade_date');
@@ -333,25 +375,25 @@ try {
             this.mockTables['__migration_logs'] = this.mockTables['__migration_logs'] || [];
             // 移除现有记录（如果存在）
             this.mockTables['__migration_logs'] = this.mockTables['__migration_logs'].filter(
-              (record) => (record as any).id !== args[0]
+              (record) => (record as MigrationLogRecord).id !== args[0]
             );
             this.mockTables['__migration_logs'].push(logData);
           } else if (query.includes('UPDATE __migration_logs')) {
             // 模拟更新迁移日志
             this.mockTables['__migration_logs'] = this.mockTables['__migration_logs'] || [];
-            const logs = this.mockTables['__migration_logs'] as any[];
+            const logs = this.mockTables['__migration_logs'] as MigrationLogRecord[];
             for (const log of logs) {
               if (log.id === args[args.length - 1]) { // id 通常是最后一个参数
                 if (query.includes('SET status = \'completed\'')) {
                   log.status = 'completed';
-                  log.completed_at = args[0];
+                  log.completed_at = args[0] as number;
                 } else if (query.includes('SET status = \'failed\'')) {
                   log.status = 'failed';
-                  log.error_message = args[0];
-                  log.attempt_count = args[1];
+                  log.error_message = args[0] as string;
+                  log.attempt_count = args[1] as number;
                 } else if (query.includes('SET status = \'rolled_back\'')) {
                   log.status = 'rolled_back';
-                  log.completed_at = args[0];
+                  log.completed_at = args[0] as number;
                 }
                 break;
               }
@@ -377,20 +419,20 @@ try {
           }
           if (query.includes('SELECT * FROM stocks WHERE ts_code = ?')) {
             const [ts_code] = args;
-            return (this.mockTables['stocks'] || []).find(
-              (stock: any) => stock.ts_code === ts_code
+            return (this.mockTables['stocks'] as StockRecord[] || []).find(
+              (stock: StockRecord) => stock.ts_code === ts_code
             ) || null;
           }
           if (query.includes('SELECT * FROM stock_daily WHERE ts_code = ? AND trade_date = ?')) {
             const [ts_code, trade_date] = args;
-            return (this.mockTables['stock_daily'] || []).find(
-              (daily: any) => daily.ts_code === ts_code && daily.trade_date === trade_date
+            return (this.mockTables['stock_daily'] as DailyRecord[] || []).find(
+              (daily: DailyRecord) => daily.ts_code === ts_code && daily.trade_date === trade_date
             ) || null;
           }
           if (query.includes('SELECT * FROM user_stock_favorites WHERE user_id = ? AND ts_code = ?')) {
             const [user_id, ts_code] = args;
-            return (this.mockTables['user_stock_favorites'] || []).find(
-              (fav: any) => fav.user_id === user_id && fav.ts_code === ts_code
+            return (this.mockTables['user_stock_favorites'] as UserStockFavoriteRecord[] || []).find(
+              (fav: UserStockFavoriteRecord) => fav.user_id === user_id && fav.ts_code === ts_code
             ) || null;
           }
           if (query.includes('SELECT COUNT(*) as count FROM stocks')) {

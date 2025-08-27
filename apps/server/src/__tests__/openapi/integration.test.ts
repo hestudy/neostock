@@ -33,7 +33,7 @@ describe("OpenAPI Integration", () => {
 
 	it("should have proper endpoint documentation", () => {
 		const healthCheck = openApiDocument.paths?.["/health-check"]?.get;
-		expect(healthCheck?.summary).toBe("Health check endpoint");
+		expect(healthCheck?.summary).toBe("Basic health check endpoint");
 		expect(healthCheck?.description).toBe("Returns OK to indicate the service is running");
 		expect(healthCheck?.tags).toContain("Health");
 

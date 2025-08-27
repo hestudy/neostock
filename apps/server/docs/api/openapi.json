@@ -28,7 +28,7 @@
     "/health-check": {
       "get": {
         "operationId": "healthCheck",
-        "summary": "Health check endpoint",
+        "summary": "Basic health check endpoint",
         "description": "Returns OK to indicate the service is running",
         "tags": [
           "Health"
@@ -40,6 +40,215 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/database": {
+      "get": {
+        "operationId": "databaseHealth",
+        "summary": "Database health check endpoint",
+        "description": "Returns detailed database health status including connectivity, performance, and configuration",
+        "tags": [
+          "Health",
+          "Database"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pass",
+                        "warn",
+                        "fail"
+                      ]
+                    },
+                    "responseTime": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "connectivity": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "pass",
+                                "fail"
+                              ]
+                            },
+                            "responseTime": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "responseTime"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "pragmaConfig": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "pass",
+                                "warn",
+                                "fail"
+                              ]
+                            },
+                            "settings": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  }
+                                ]
+                              }
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "settings",
+                            "issues"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "connectionPool": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "pass",
+                                "warn",
+                                "fail"
+                              ]
+                            },
+                            "active": {
+                              "type": "number"
+                            },
+                            "max": {
+                              "type": "number"
+                            },
+                            "utilization": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "active",
+                            "max",
+                            "utilization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "performance": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "pass",
+                                "warn",
+                                "fail"
+                              ]
+                            },
+                            "averageQueryTime": {
+                              "type": "number"
+                            },
+                            "slowQueries": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "averageQueryTime",
+                            "slowQueries"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "diskSpace": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "pass",
+                                "warn",
+                                "fail"
+                              ]
+                            },
+                            "info": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "info"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "connectivity",
+                        "pragmaConfig",
+                        "connectionPool",
+                        "performance",
+                        "diskSpace"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "responseTime",
+                    "message",
+                    "timestamp",
+                    "details"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }

@@ -70,7 +70,7 @@ export async function getConnectionPoolStatus() {
 	const stats = {
 		active_connections: 1, // libsql 会自动管理连接
 		max_connections: 10, // 根据故事要求设定
-		uptime: Math.floor(process.uptime()),
+		uptime: process.uptime(), // 保持浮点数精度
 		queries_executed: 0, // 可以通过中间件跟踪
 	};
 	
