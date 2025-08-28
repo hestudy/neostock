@@ -37,7 +37,7 @@ describe('Debug Leak Detection History', () => {
     const result1 = credentialsManager.detectLeakage(keyId);
     console.log('First detection result:', result1);
     
-    let logs1 = credentialsManager.getAuditLogs(keyId);
+    const logs1 = credentialsManager.getAuditLogs(keyId);
     console.log('After first detection, leak logs:', logs1.filter(l => l.action === 'leak_detected').length);
     
     // 时间推进，清除窗口

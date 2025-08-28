@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AuditLogger } from '../../../lib/security/audit-logger';
 
 describe('AuditLogger 审计日志记录测试', () => {
   let logger: AuditLogger;
-  const originalDateNow = Date.now;
 
   beforeEach(() => {
     // 使用独立实例避免测试间的干扰
