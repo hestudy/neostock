@@ -1,22 +1,31 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { CredentialsManager } from '../../../lib/security/credentials-manager';
 
 describe('密钥泄露检测机制专项测试', () => {
   let credentialsManager: CredentialsManager;
+  let currentTime = new Date('2024-01-15T10:00:00Z');
   
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+    // 重置时间
+    currentTime = new Date('2024-01-15T10:00:00Z');
     
     // 设置测试用的加密密钥
     process.env.CREDENTIAL_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
     
     credentialsManager = CredentialsManager.getInstance();
+    credentialsManager.clearAll();
+    credentialsManager.setTimeProvider(() => new Date(currentTime));
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    credentialsManager.resetTimeProvider();
   });
+
+  // 辅助函数：推进时间
+  const advanceTime = (ms: number) => {
+    currentTime = new Date(currentTime.getTime() + ms);
+    credentialsManager.setTimeProvider(() => new Date(currentTime));
+  };
 
   describe('高频访问模式检测', () => {
     it('应该检测到24小时内超过1000次的异常访问', () => {
@@ -68,7 +77,7 @@ describe('密钥泄露检测机制专项测试', () => {
       for (let i = 0; i < totalAccesses; i++) {
         credentialsManager.getCredential(keyId);
         if (i < totalAccesses - 1) {
-          vi.advanceTimersByTime(timeInterval);
+          advanceTime(timeInterval);
         }
       }
       
@@ -90,7 +99,7 @@ describe('密钥泄露检测机制专项测试', () => {
       expect(credentialsManager.detectLeakage(keyId)).toBe(false);
       
       // 时间推进25小时（超出窗口）
-      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+      advanceTime(25 * 60 * 60 * 1000);
       
       // 第二个24小时窗口：999次访问（不触发）
       for (let i = 0; i < 999; i++) {
@@ -140,7 +149,7 @@ describe('密钥泄露检测机制专项测试', () => {
       for (let i = 0; i < 1000; i++) {
         credentialsManager.getCredential(keyId);
         if (i < 999) {
-          vi.advanceTimersByTime(3600); // 每次访问间隔3.6秒
+          advanceTime(3600); // 每次访问间隔3.6秒
         }
       }
       
@@ -165,7 +174,7 @@ describe('密钥泄露检测机制专项测试', () => {
         }
         
         if (batch < 2) {
-          vi.advanceTimersByTime(8 * 60 * 60 * 1000); // 8小时间隔
+          advanceTime(8 * 60 * 60 * 1000); // 8小时间隔
         }
       }
       
@@ -192,7 +201,7 @@ describe('密钥泄露检测机制专项测试', () => {
         }
         
         if (minute < totalMinutes - 1) {
-          vi.advanceTimersByTime(60 * 1000); // 推进1分钟
+          advanceTime(60 * 1000); // 推进1分钟
         }
       }
       
@@ -212,14 +221,14 @@ describe('密钥泄露检测机制专项测试', () => {
       // 正常访问100次
       for (let i = 0; i < 100; i++) {
         credentialsManager.getCredential(keyId);
-        vi.advanceTimersByTime(60 * 1000); // 每分钟1次，正常频率
+        advanceTime(60 * 1000); // 每分钟1次，正常频率
       }
       
       // 模拟泄露后的爆发式访问：10分钟内2000次
       for (let i = 0; i < 2000; i++) {
         credentialsManager.getCredential(keyId);
         if (i < 1999) {
-          vi.advanceTimersByTime(300); // 每300ms一次访问
+          advanceTime(300); // 每300ms一次访问
         }
       }
       
@@ -275,7 +284,7 @@ describe('密钥泄露检测机制专项测试', () => {
       expect(credentialsManager.detectLeakage(keyId)).toBe(true);
       
       // 时间推进25小时
-      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+      advanceTime(25 * 60 * 60 * 1000);
       
       // 现在进行少量正常访问
       for (let i = 0; i < 10; i++) {
@@ -299,7 +308,7 @@ describe('密钥泄露检测机制专项测试', () => {
       credentialsManager.detectLeakage(keyId);
       
       // 时间推进，清除窗口
-      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+      advanceTime(25 * 60 * 60 * 1000);
       
       // 第二次触发泄露检测
       for (let i = 0; i < 1001; i++) {
@@ -410,7 +419,8 @@ describe('密钥泄露检测机制专项测试', () => {
       }
       
       // 模拟时间倒流（在实际系统中不应该发生，但要测试健壮性）
-      vi.setSystemTime(new Date('2024-01-14T10:00:00Z')); // 回到昨天
+      currentTime = new Date('2024-01-14T10:00:00Z'); // 回到昨天
+      credentialsManager.setTimeProvider(() => new Date(currentTime));
       
       // 继续访问
       for (let i = 0; i < 100; i++) {

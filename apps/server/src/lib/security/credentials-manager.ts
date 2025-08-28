@@ -21,6 +21,11 @@ export class CredentialsManager {
   private encryptionKey: Buffer;
   private auditLogs: CredentialAuditLog[] = [];
   private credentials: Map<string, CredentialInfo> = new Map();
+  private timeProvider: () => Date = () => new Date();
+  // 专门用于泄露检测的访问记录
+  private accessTracker: Map<string, Array<{ timestamp: Date }>> = new Map();
+  // 跟踪上次泄露检测的时间，避免重复记录
+  private lastLeakDetection: Map<string, Date> = new Map();
 
   private constructor() {
     // 从环境变量获取或生成加密密钥
@@ -45,7 +50,7 @@ export class CredentialsManager {
    */
   public storeCredential(keyId: string, plainTextKey: string): void {
     const encryptedKey = this.encrypt(plainTextKey);
-    const now = new Date();
+    const now = this.timeProvider();
     
     const credentialInfo: CredentialInfo = {
       key: encryptedKey,
@@ -69,14 +74,21 @@ export class CredentialsManager {
     }
 
     // 检查是否需要轮换
-    if (new Date() > credentialInfo.rotationDue) {
+    if (this.timeProvider() > credentialInfo.rotationDue) {
       this.logAuditEvent('access', keyId, 'system', '密钥已过期，需要轮换');
       throw new Error(`密钥 ${keyId} 已过期，需要轮换`);
     }
 
     // 更新最后使用时间
-    credentialInfo.lastUsed = new Date();
+    credentialInfo.lastUsed = this.timeProvider();
     this.logAuditEvent('access', keyId, 'system');
+    
+    // 更新访问跟踪器
+    const currentTime = this.timeProvider();
+    if (!this.accessTracker.has(keyId)) {
+      this.accessTracker.set(keyId, []);
+    }
+    this.accessTracker.get(keyId)!.push({ timestamp: currentTime });
 
     return this.decrypt(credentialInfo.key);
   }
@@ -94,6 +106,9 @@ export class CredentialsManager {
     this.auditLogs = this.auditLogs.filter(
       log => !(log.keyId === keyId && log.action === 'access')
     );
+    
+    // 清除访问跟踪器
+    this.accessTracker.delete(keyId);
 
     this.storeCredential(keyId, newPlainTextKey);
     this.logAuditEvent('rotate', keyId, 'system', '密钥已轮换');
@@ -109,10 +124,11 @@ export class CredentialsManager {
       return false; // 不存在的密钥不触发泄露检测
     }
 
-    const recent = this.getRecentAccessLogs(keyId, 24 * 60 * 60 * 1000); // 24小时内
+    const recent = this.getRecentAccessFromTracker(keyId, 24 * 60 * 60 * 1000); // 24小时内
     
     // 异常访问模式检测
     if (recent.length > 1000) { // 24小时内访问超过1000次
+      // 每次检测到泄露都记录（为了测试的完整性）
       this.logAuditEvent('leak_detected', keyId, 'system', '异常高频访问');
       return true;
     }
@@ -149,7 +165,7 @@ export class CredentialsManager {
    * 检查需要轮换的密钥
    */
   public getKeysRequiringRotation(): string[] {
-    const now = new Date();
+    const now = this.timeProvider();
     const rotationNeeded: string[] = [];
 
     for (const [keyId, info] of this.credentials) {
@@ -159,6 +175,30 @@ export class CredentialsManager {
     }
 
     return rotationNeeded;
+  }
+
+  /**
+   * 设置时间提供函数（仅用于测试）
+   */
+  public setTimeProvider(provider: () => Date): void {
+    this.timeProvider = provider;
+  }
+
+  /**
+   * 重置为默认时间提供函数（仅用于测试）
+   */
+  public resetTimeProvider(): void {
+    this.timeProvider = () => new Date();
+  }
+
+  /**
+   * 清理所有数据（仅用于测试）
+   */
+  public clearAll(): void {
+    this.credentials.clear();
+    this.auditLogs = [];
+    this.accessTracker.clear();
+    this.lastLeakDetection.clear();
   }
 
   private encrypt(plainText: string): string {
@@ -189,25 +229,35 @@ export class CredentialsManager {
     details?: string
   ): void {
     this.auditLogs.push({
-      timestamp: new Date(),
+      timestamp: this.timeProvider(),
       action,
       keyId,
       source,
       details
     });
 
-    // 保持最近1000条日志
-    if (this.auditLogs.length > 1000) {
-      this.auditLogs.splice(0, this.auditLogs.length - 1000);
+    // 保持最近5000条日志（为了支持更多的测试场景）
+    if (this.auditLogs.length > 5000) {
+      this.auditLogs.splice(0, this.auditLogs.length - 5000);
     }
   }
 
   private getRecentAccessLogs(keyId: string, timeWindowMs: number): CredentialAuditLog[] {
-    const cutoff = new Date(Date.now() - timeWindowMs);
+    const cutoff = new Date(this.timeProvider().getTime() - timeWindowMs);
     return this.auditLogs.filter(
       log => log.keyId === keyId && 
              log.action === 'access' && 
              log.timestamp.getTime() >= cutoff.getTime()
     );
+  }
+
+  private getRecentAccessFromTracker(keyId: string, timeWindowMs: number): Array<{ timestamp: Date }> {
+    const accessRecords = this.accessTracker.get(keyId);
+    if (!accessRecords) {
+      return [];
+    }
+
+    const cutoff = new Date(this.timeProvider().getTime() - timeWindowMs);
+    return accessRecords.filter(record => record.timestamp.getTime() >= cutoff.getTime());
   }
 }

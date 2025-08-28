@@ -46,6 +46,26 @@ export class SinaDataSource extends AbstractDataSource {
     return "sina";
   }
 
+  // 重写makeRequest方法，添加新浪财经需要的请求头
+  protected async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {
+    // 新浪财经需要特殊的请求头来模拟浏览器行为
+    const sinaHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://finance.sina.com.cn/',
+      'Accept': '*/*',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache',
+      ...options.headers,
+    };
+
+    return super.makeRequest(url, {
+      ...options,
+      headers: sinaHeaders,
+    });
+  }
+
   // 健康检查实现
   async performHealthCheck(): Promise<boolean> {
     try {

@@ -28,6 +28,7 @@ export class AuditLogger {
   private static instance: AuditLogger;
   private logs: AuditLogEntry[] = [];
   private maxLogSize = 10000; // 最多保存10000条日志
+  private timeProvider: () => Date = () => new Date();
 
   private constructor() {}
 
@@ -44,7 +45,7 @@ export class AuditLogger {
   public logApiAccess(entry: Omit<AuditLogEntry, 'id' | 'timestamp'>): void {
     const logEntry: AuditLogEntry = {
       id: this.generateId(),
-      timestamp: new Date(),
+      timestamp: this.timeProvider(),
       ...entry,
     };
 
@@ -217,7 +218,7 @@ export class AuditLogger {
     operationsByResource: Record<string, number>;
     lastOperation?: Date;
   } {
-    const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const cutoffTime = new Date(this.timeProvider().getTime() - hours * 60 * 60 * 1000);
     const userLogs = this.logs.filter(
       log => log.userId === userId && log.timestamp >= cutoffTime
     );
@@ -257,7 +258,7 @@ export class AuditLogger {
     }>;
   } {
     const recentLogs = this.logs.filter(
-      log => log.timestamp >= new Date(Date.now() - 60 * 60 * 1000) // 最近1小时
+      log => log.timestamp >= new Date(this.timeProvider().getTime() - 60 * 60 * 1000) // 最近1小时
     );
 
     const suspiciousUsers: Array<{
@@ -346,7 +347,7 @@ export class AuditLogger {
    * 清理旧日志
    */
   public cleanupOldLogs(maxAge: number = 30 * 24 * 60 * 60 * 1000): number {
-    const cutoffTime = new Date(Date.now() - maxAge);
+    const cutoffTime = new Date(this.timeProvider().getTime() - maxAge);
     const initialCount = this.logs.length;
     
     this.logs = this.logs.filter(log => log.timestamp >= cutoffTime);
@@ -364,7 +365,7 @@ export class AuditLogger {
     topActions: Array<{ action: string; count: number }>;
     topResources: Array<{ resource: string; count: number }>;
   } {
-    const today = new Date();
+    const today = new Date(this.timeProvider().getTime());
     today.setHours(0, 0, 0, 0);
     
     const logsToday = this.logs.filter(log => log.timestamp >= today);
@@ -452,6 +453,20 @@ export class AuditLogger {
    */
   public getLogCount(): number {
     return this.logs.length;
+  }
+
+  /**
+   * 设置时间提供函数（仅用于测试）
+   */
+  public setTimeProvider(provider: () => Date): void {
+    this.timeProvider = provider;
+  }
+
+  /**
+   * 重置为默认时间提供函数（仅用于测试）
+   */
+  public resetTimeProvider(): void {
+    this.timeProvider = () => new Date();
   }
 
   private addLog(entry: AuditLogEntry): void {

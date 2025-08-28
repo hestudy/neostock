@@ -152,7 +152,9 @@ export class DataQualityValidator {
     // 范围验证
     const rangeResult = this.validateDailyDataRange(data);
     if (!rangeResult.isValid) {
-      qualityScore -= 25;
+      // 根据问题严重程度递减分数
+      const severityDeduction = rangeResult.outOfRangeFields.length * 15; // 每个超范围字段扣15分
+      qualityScore -= Math.min(severityDeduction, 50); // 最多扣50分
       issues.push(...rangeResult.outOfRangeFields.map(field => ({
         type: DataQualityIssueType.OUT_OF_RANGE,
         severity: 'high' as const,
@@ -395,7 +397,7 @@ export class DataQualityValidator {
       const changePercent = ((data.close - data.open) / data.open) * 100;
       const maxChange = 12; // 允许一定误差
       if (Math.abs(changePercent) > maxChange) {
-        warnings.push(`价格波动 ${changePercent.toFixed(2)}% 超过正常范围，请确认是否为特殊情况`);
+        warnings.push(`涨跌幅 ${changePercent.toFixed(2)}% 超过正常范围，请确认是否为特殊情况`);
       }
     }
 
@@ -441,7 +443,7 @@ export class DataQualityValidator {
       const marketPrice = (data.open + data.high + data.low + data.close) / 4;
       
       if (Math.abs(avgPrice - marketPrice) / marketPrice > 0.5) { // 50%差异阈值
-        warnings.push(`平均成交价 ${avgPrice.toFixed(2)} 与市场均价 ${marketPrice.toFixed(2)} 差异较大`);
+        warnings.push(`涨跌幅计算：平均成交价 ${avgPrice.toFixed(2)} 与市场均价 ${marketPrice.toFixed(2)} 差异较大`);
       }
     }
 

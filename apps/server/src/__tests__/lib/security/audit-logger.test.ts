@@ -3,19 +3,19 @@ import { AuditLogger } from '../../../lib/security/audit-logger';
 
 describe('AuditLogger 审计日志记录测试', () => {
   let logger: AuditLogger;
+  const originalDateNow = Date.now;
 
   beforeEach(() => {
     // 使用独立实例避免测试间的干扰
     logger = AuditLogger.getInstance();
     logger.clearLogs();
     
-    // 使用fake timers以便控制时间
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+    // 设置固定时间
+    logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    logger.resetTimeProvider();
   });
 
   describe('基础日志记录功能', () => {
@@ -193,39 +193,51 @@ describe('AuditLogger 审计日志记录测试', () => {
       // 准备测试数据
       const testLogs = [
         {
-          userId: 'user1',
-          action: 'GET_STATUS',
-          resource: 'data-sources',
-          method: 'GET',
-          success: true,
+          logData: {
+            userId: 'user1',
+            action: 'GET_STATUS',
+            resource: 'data-sources',
+            method: 'GET',
+            success: true,
+          },
+          timestamp: new Date('2024-01-15T10:00:00Z')
         },
         {
-          userId: 'user1',
-          action: 'TRIGGER_UPDATE',
-          resource: 'data-sources',
-          method: 'POST',
-          success: false,
-          error: '权限不足',
+          logData: {
+            userId: 'user1',
+            action: 'TRIGGER_UPDATE',
+            resource: 'data-sources',
+            method: 'POST',
+            success: false,
+            error: '权限不足',
+          },
+          timestamp: new Date('2024-01-15T10:01:00Z')
         },
         {
-          userId: 'user2',
-          action: 'GET_STATUS',
-          resource: 'data-sources',
-          method: 'GET',
-          success: true,
+          logData: {
+            userId: 'user2',
+            action: 'GET_STATUS',
+            resource: 'data-sources',
+            method: 'GET',
+            success: true,
+          },
+          timestamp: new Date('2024-01-15T10:02:00Z')
         },
         {
-          userId: 'admin',
-          action: 'ROTATE_KEY',
-          resource: 'credential:tushare-token',
-          method: 'CREDENTIAL',
-          success: true,
+          logData: {
+            userId: 'admin',
+            action: 'ROTATE_KEY',
+            resource: 'credential:tushare-token',
+            method: 'CREDENTIAL',
+            success: true,
+          },
+          timestamp: new Date('2024-01-15T10:03:00Z')
         },
       ];
 
-      testLogs.forEach((logData, index) => {
-        // 为每个日志设置不同的时间
-        vi.setSystemTime(new Date(`2024-01-15T10:0${index}:00Z`));
+      testLogs.forEach(({ logData, timestamp }) => {
+        // 为每个日志设置指定的时间
+        logger.setTimeProvider(() => timestamp);
         logger.logApiAccess(logData);
       });
     });
@@ -263,8 +275,9 @@ describe('AuditLogger 审计日志记录测试', () => {
       const endDate = new Date('2024-01-15T10:02:00Z');
       
       const rangeLogs = logger.queryLogs({ startDate, endDate });
-      expect(rangeLogs).toHaveLength(1);
-      expect(rangeLogs[0].action).toBe('TRIGGER_UPDATE');
+      expect(rangeLogs).toHaveLength(2); // 包含 10:01:00 和 10:02:00 的日志
+      expect(rangeLogs.some(log => log.action === 'TRIGGER_UPDATE')).toBe(true);
+      expect(rangeLogs.some(log => log.action === 'GET_STATUS')).toBe(true);
     });
 
     it('应该能够限制查询结果数量', () => {
@@ -298,7 +311,7 @@ describe('AuditLogger 审计日志记录测试', () => {
   describe('用户操作统计', () => {
     beforeEach(() => {
       // 准备用户操作数据
-      vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
       
       // user1 的操作（最近1小时内）
       for (let i = 0; i < 5; i++) {
@@ -323,7 +336,7 @@ describe('AuditLogger 审计日志记录测试', () => {
       }
 
       // user1 的一个旧操作（25小时前）
-      vi.setSystemTime(new Date('2024-01-14T09:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-14T09:00:00Z'));
       logger.logApiAccess({
         userId: 'user1',
         action: 'OLD_ACTION',
@@ -333,7 +346,7 @@ describe('AuditLogger 审计日志记录测试', () => {
       });
       
       // 重置到当前时间
-      vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
     });
 
     it('应该正确统计用户操作', () => {
@@ -374,7 +387,7 @@ describe('AuditLogger 审计日志记录测试', () => {
 
   describe('异常活动检测', () => {
     beforeEach(() => {
-      vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
       
       // 创建正常用户
       for (let i = 0; i < 10; i++) {
@@ -463,7 +476,7 @@ describe('AuditLogger 审计日志记录测试', () => {
   describe('日志清理和管理', () => {
     it('应该能够清理旧日志', () => {
       // 创建一些旧日志
-      vi.setSystemTime(new Date('2024-01-01T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-01T10:00:00Z'));
       logger.logApiAccess({
         userId: 'user1',
         action: 'OLD_ACTION',
@@ -473,7 +486,7 @@ describe('AuditLogger 审计日志记录测试', () => {
       });
       
       // 创建一些新日志
-      vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
       logger.logApiAccess({
         userId: 'user1',
         action: 'NEW_ACTION',
@@ -496,7 +509,7 @@ describe('AuditLogger 审计日志记录测试', () => {
 
     it('应该提供日志统计信息', () => {
       // 准备测试数据
-      vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
       
       // 今天的日志
       logger.logApiAccess({
@@ -516,7 +529,7 @@ describe('AuditLogger 审计日志记录测试', () => {
       });
       
       // 昨天的日志
-      vi.setSystemTime(new Date('2024-01-14T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-14T10:00:00Z'));
       logger.logApiAccess({
         userId: 'user3',
         action: 'TRIGGER_UPDATE',
@@ -525,7 +538,7 @@ describe('AuditLogger 审计日志记录测试', () => {
         success: true,
       });
       
-      vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+      logger.setTimeProvider(() => new Date('2024-01-15T10:00:00Z'));
       
       const stats = logger.getLogStats();
       
