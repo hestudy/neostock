@@ -27,6 +27,9 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
     // 获取新的实例
     credentialsManager = CredentialsManager.getInstance();
     
+    // 清空所有测试数据
+    credentialsManager.clearAll();
+    
     // 设置固定时间
     credentialsManager.setTimeProvider(() => new Date(currentTime));
   });
