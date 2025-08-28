@@ -102,16 +102,17 @@ export class CredentialsManager {
       oldCredential.isActive = false;
     }
 
-    // 清除旧的访问日志，重新开始监控
-    this.auditLogs = this.auditLogs.filter(
-      log => !(log.keyId === keyId && log.action === 'access')
-    );
+    // 注意：不清除历史访问日志，保持完整的审计轨迹
+    // 只清除访问跟踪器用于重新监控泄露检测
     
     // 清除访问跟踪器
     this.accessTracker.delete(keyId);
 
-    this.storeCredential(keyId, newPlainTextKey);
+    // 先记录轮换事件
     this.logAuditEvent('rotate', keyId, 'system', '密钥已轮换');
+    
+    // 然后存储新密钥（这会记录 create 事件）
+    this.storeCredential(keyId, newPlainTextKey);
   }
 
   /**
@@ -236,9 +237,9 @@ export class CredentialsManager {
       details
     });
 
-    // 保持最近5000条日志（为了支持更多的测试场景）
-    if (this.auditLogs.length > 5000) {
-      this.auditLogs.splice(0, this.auditLogs.length - 5000);
+    // 保持最近1000条日志，避免内存无限增长
+    if (this.auditLogs.length > 1000) {
+      this.auditLogs.splice(0, this.auditLogs.length - 1000);
     }
   }
 

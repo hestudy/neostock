@@ -3,25 +3,38 @@ import { CredentialsManager } from '../../../lib/security/credentials-manager';
 
 describe('CredentialsManager 增强安全测试 (AC7)', () => {
   let credentialsManager: CredentialsManager;
+  let currentTime = new Date('2024-01-15T10:00:00Z');
   
   // 保存原始环境变量
   const originalEnv = process.env.CREDENTIAL_ENCRYPTION_KEY;
   
+  // 时间推进辅助函数
+  const advanceTime = (ms: number) => {
+    currentTime = new Date(currentTime.getTime() + ms);
+    credentialsManager.setTimeProvider(() => new Date(currentTime));
+  };
+  
   beforeEach(() => {
     // 重置实例
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+    
+    // 重置时间
+    currentTime = new Date('2024-01-15T10:00:00Z');
     
     // 设置测试用的加密密钥
     process.env.CREDENTIAL_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
     
     // 获取新的实例
     credentialsManager = CredentialsManager.getInstance();
+    
+    // 设置固定时间
+    credentialsManager.setTimeProvider(() => new Date(currentTime));
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    // 重置时间提供器
+    credentialsManager.resetTimeProvider();
+    
     // 恢复环境变量
     if (originalEnv) {
       process.env.CREDENTIAL_ENCRYPTION_KEY = originalEnv;
@@ -106,7 +119,9 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       // 创建新实例应该生成临时密钥并发出警告
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
-      // 重新创建实例来测试回退机制
+      // 强制重置单例实例来测试回退机制
+      // @ts-expect-error - 访问私有静态成员用于测试
+      CredentialsManager.instance = undefined;
       const newManager = CredentialsManager.getInstance();
       
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -209,7 +224,7 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       }
       
       // 时间推进25小时
-      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+      advanceTime(25 * 60 * 60 * 1000);
       
       // 在第二天再进行500次访问
       for (let i = 0; i < 500; i++) {
@@ -287,12 +302,13 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       const testKey = 'test-key';
       
       const startTime = new Date('2024-01-15T10:00:00Z');
-      vi.setSystemTime(startTime);
+      currentTime = startTime;
+      credentialsManager.setTimeProvider(() => new Date(currentTime));
       
       credentialsManager.storeCredential(keyId, testKey);
       
       // 推进时间并访问
-      vi.advanceTimersByTime(60 * 1000); // 1分钟后
+      advanceTime(60 * 1000); // 1分钟后
       credentialsManager.getCredential(keyId);
       
       const auditLogs = credentialsManager.getAuditLogs(keyId);
@@ -318,7 +334,7 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       ];
       
       operations.forEach((operation) => {
-        vi.advanceTimersByTime(60 * 1000); // 每次操作间隔1分钟
+        advanceTime(60 * 1000); // 每次操作间隔1分钟
         operation();
       });
       
@@ -376,7 +392,7 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       // 验证过滤功能
       expect(key1Logs.every(log => log.keyId === keyId1)).toBe(true);
       expect(key2Logs.every(log => log.keyId === keyId2)).toBe(true);
-      expect(key1Logs.length).toBe(2); // create + 2次access
+      expect(key1Logs.length).toBe(3); // create + 2次access
       expect(key2Logs.length).toBe(2); // create + 1次access
       expect(allLogs.length).toBeGreaterThanOrEqual(key1Logs.length + key2Logs.length);
     });
@@ -393,15 +409,15 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       expect(() => credentialsManager.getCredential(keyId)).not.toThrow();
       
       // 推进89天 - 应该仍然有效
-      vi.advanceTimersByTime(89 * 24 * 60 * 60 * 1000);
+      advanceTime(89 * 24 * 60 * 60 * 1000);
       expect(() => credentialsManager.getCredential(keyId)).not.toThrow();
       
       // 推进到第90天 - 应该仍然有效
-      vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+      advanceTime(24 * 60 * 60 * 1000);
       expect(() => credentialsManager.getCredential(keyId)).not.toThrow();
       
       // 推进到第91天 - 应该过期
-      vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+      advanceTime(24 * 60 * 60 * 1000);
       expect(() => credentialsManager.getCredential(keyId)).toThrow('已过期');
       
       // 验证审计日志记录了过期访问尝试
@@ -430,7 +446,7 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       
       // 验证新密钥有正确的轮换周期（从轮换时开始计算90天）
       const status = credentialsManager.getCredentialStatus(keyId);
-      expect(status?.rotationDue).toEqual(new Date('2024-04-15T10:00:00Z')); // 90天后
+      expect(status?.rotationDue).toEqual(new Date('2024-04-14T10:00:00Z')); // 90天后
     });
 
     it('应该正确识别需要轮换的密钥', () => {
@@ -445,7 +461,7 @@ describe('CredentialsManager 增强安全测试 (AC7)', () => {
       credentialsManager.storeCredential(keyId3, testKey);
       
       // 推进时间使前两个密钥过期
-      vi.advanceTimersByTime(91 * 24 * 60 * 60 * 1000); // 91天后
+      advanceTime(91 * 24 * 60 * 60 * 1000); // 91天后
       
       // 轮换第三个密钥，使其重新计时
       credentialsManager.rotateCredential(keyId3, testKey);
