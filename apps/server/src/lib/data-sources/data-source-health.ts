@@ -33,7 +33,7 @@ export class DataSourceHealthMonitor {
     // 清除现有监控
     this.stopMonitoring(name);
 
-    console.log(`🔍 开始监控数据源: ${name}，检查间隔: ${config.healthCheck.interval}ms`);
+    console.log(`🔍 开始监控数据源: ${name}，检查间隔: ${config.healthCheck?.interval || 30000}ms`);
 
     // 立即执行一次健康检查
     this.performHealthCheck(dataSource);
@@ -41,7 +41,7 @@ export class DataSourceHealthMonitor {
     // 设置定期健康检查
     const intervalId = setInterval(async () => {
       await this.performHealthCheck(dataSource);
-    }, config.healthCheck.interval);
+    }, config.healthCheck?.interval || 30000);
 
     this.monitoringIntervals.set(name, intervalId);
   }

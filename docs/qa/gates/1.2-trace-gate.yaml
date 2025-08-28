@@ -1,0 +1,67 @@
+trace:
+  totals:
+    requirements: 7
+    full: 4
+    partial: 2
+    none: 1
+  planning_ref: 'docs/qa/assessments/1.2-trace-20250828.md'
+  uncovered:
+    - ac: 'AC5'
+      reason: '缓存和性能优化完全未覆盖，存在高风险'
+    - ac: 'AC3'
+      reason: '数据质量保证部分覆盖，缺少数据清洗和质量评分测试'
+    - ac: 'AC6'
+      reason: '安全API扩展部分覆盖，缺少API频率限制测试'
+  critical_gaps:
+    - gap: '缓存机制集成测试'
+      ac: 'AC5'
+      risk: 'HIGH'
+      reason: '性能问题无法在测试阶段发现，API限制风险可能导致生产环境问题'
+    - gap: 'API权限控制完整性'
+      ac: 'AC6'
+      risk: 'HIGH'
+      reason: '安全漏洞和API滥用风险'
+  coverage_summary:
+    total_test_scenarios: 51
+    covered_scenarios: 36
+    missing_scenarios: 15
+    coverage_percentage: 71
+  test_files_analyzed:
+    - 'data-source-config.test.ts'
+    - 'sina-data-source.test.ts'
+    - 'data-sync-scheduler.test.ts'
+    - 'retry-strategy.test.ts'
+    - 'data-cache-manager.test.ts'
+    - 'data-cache-integration.test.ts'
+    - 'credentials-manager-rotation.test.ts'
+    - 'cross-datasource-validator.test.ts'
+    - 'data-sources-auth.test.ts'
+    - 'data-sources-permissions.test.ts'
+  risk_assessment:
+    high_risk_items: 2
+    medium_risk_items: 2
+    low_risk_items: 3
+  decision: 'CONCERNS'
+  decision_rationale: |
+    虽然核心数据流（AC1, AC2, AC4, AC7）测试覆盖充分，但存在关键风险：
+    1. AC5缓存系统零覆盖构成高性能风险
+    2. API权限控制测试不足，存在安全风险
+    3. 数据质量验证深度不够，可能影响数据准确性
+  release_conditions:
+    - condition: '补充缓存机制基础集成测试（命中率>80%验证）'
+      priority: 'P0'
+      ac: 'AC5'
+    - condition: '添加API权限控制基础测试（未授权拒绝验证）'
+      priority: 'P0'  
+      ac: 'AC6'
+    - condition: '完善凭据轮换机制测试（90天周期验证）'
+      priority: 'P1'
+      ac: 'AC7'
+    - condition: '添加跨数据源一致性验证测试'
+      priority: 'P1'
+      ac: 'AC3'
+  notes: |
+    需求追溯分析显示测试覆盖存在重要缺口。建议按优先级分阶段修复：
+    P0缺口（立即）: 缓存集成测试、API权限控制测试
+    P1缺口（短期）: 数据质量验证测试、凭据轮换自动化测试
+    详见追溯报告: docs/qa/assessments/1.2-trace-20250828.md

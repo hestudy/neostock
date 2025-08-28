@@ -14,6 +14,7 @@ export interface StockBasicInfo {
 
 // 股票日线数据接口
 export interface StockDailyData {
+  id?: number; // 数据库ID (可选)
   ts_code: string; // 股票代码
   trade_date: string; // 交易日期 (YYYYMMDD格式)
   open: number; // 开盘价
@@ -27,20 +28,33 @@ export interface StockDailyData {
 // 数据源配置接口
 export interface DataSourceConfig {
   name: string; // 数据源名称
+  displayName?: string; // 显示名称
   priority: number; // 优先级 (数字越小优先级越高)
-  apiUrl: string; // API 基础地址
+  apiUrl?: string; // API 基础地址 (向后兼容)
   apiKey?: string; // API 密钥 (可选)
-  rateLimit: {
-    requestsPerSecond: number; // 每秒请求限制
-    requestsPerMinute: number; // 每分钟请求限制
-    requestsPerDay: number; // 每日请求限制
-  };
   timeout: number; // 请求超时时间 (毫秒)
+  rateLimit: {
+    maxRequests?: number; // 每时间窗口最大请求数
+    windowMs?: number; // 时间窗口 (毫秒)
+    requestsPerSecond?: number; // 每秒请求限制
+    requestsPerMinute?: number; // 每分钟请求限制
+    requestsPerDay?: number; // 每日请求限制
+  };
   retryConfig: RetryConfig;
-  healthCheck: {
+  healthCheck?: {
     endpoint: string; // 健康检查端点
     interval: number; // 检查间隔 (毫秒)
     timeout: number; // 检查超时时间 (毫秒)
+  };
+  features?: {
+    supportsStockBasic?: boolean; // 支持股票基础信息
+    supportsStockDaily?: boolean; // 支持日线数据
+    supportsRealtime?: boolean; // 支持实时数据
+  };
+  endpoints?: {
+    stockBasic?: string; // 股票基础信息端点
+    stockDaily?: string; // 日线数据端点
+    realtime?: string; // 实时数据端点
   };
 }
 
@@ -74,6 +88,7 @@ export enum DataSourceStatus {
 
 // 数据拉取请求参数
 export interface DataFetchRequest {
+  symbol?: string; // 股票代码 (单个)
   startDate?: string; // 开始日期 (YYYYMMDD)
   endDate?: string; // 结束日期 (YYYYMMDD)
   tsCodes?: string[]; // 特定股票代码列表
@@ -85,16 +100,34 @@ export interface DataFetchRequest {
 export interface DataFetchResponse<T> {
   success: boolean; // 是否成功
   data: T[]; // 数据列表
-  total?: number; // 总数 (分页时使用)
-  hasMore?: boolean; // 是否还有更多数据
-  nextOffset?: number; // 下一页偏移量
+  source: string; // 数据源名称
+  timestamp: Date; // 响应时间戳
+  count: number; // 数据条数
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    hasMore: boolean;
+  };
+  total?: number; // 总数 (分页时使用，向后兼容)
+  hasMore?: boolean; // 是否还有更多数据 (向后兼容)
+  nextOffset?: number; // 下一页偏移量 (向后兼容)
   errorMessage?: string; // 错误信息
-  sourceInfo: {
+  sourceInfo?: {
     name: string; // 数据源名称
     requestId: string; // 请求ID
     timestamp: Date; // 响应时间戳
     cached: boolean; // 是否来自缓存
   };
+}
+
+// 健康检查结果
+export interface HealthCheckResult {
+  isHealthy: boolean; // 是否健康
+  responseTime: number; // 响应时间 (毫秒)
+  lastCheck: Date; // 检查时间
+  errorMessage?: string; // 错误信息
+  details?: Record<string, unknown>; // 详细信息
 }
 
 // 数据质量检查结果

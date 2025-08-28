@@ -14,6 +14,7 @@ import {
   DataSourceError,
   DataQualityIssueType,
 } from "../../types/data-sources";
+import { dataCacheManager } from "../cache/data-cache-manager";
 
 // 数据源抽象基类
 export abstract class AbstractDataSource {
@@ -29,9 +30,76 @@ export abstract class AbstractDataSource {
 
   // 抽象方法 - 子类必须实现
   abstract getName(): string;
-  abstract getStockBasicInfo(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>>;
-  abstract getStockDailyData(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>>;
   abstract performHealthCheck(): Promise<boolean>;
+  
+  // 需要子类实现的具体数据获取方法 (不带缓存)
+  abstract fetchStockBasicInfoRaw(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>>;
+  abstract fetchStockDailyDataRaw(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>>;
+
+  // 带缓存的公共接口方法
+  async getStockBasicInfo(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>> {
+    const cacheKey = this.buildCacheKey('basic', request);
+    
+    // 尝试从缓存获取
+    const cached = dataCacheManager.getStockBasicInfo(cacheKey);
+    if (cached) {
+      // 标记为来自缓存并返回
+      return {
+        ...cached,
+        sourceInfo: {
+          name: cached.sourceInfo?.name || this.config.name,
+          requestId: cached.sourceInfo?.requestId || "",
+          timestamp: cached.sourceInfo?.timestamp || new Date(),
+          cached: true,
+        },
+      };
+    }
+
+    // 从数据源获取新数据
+    const response = await this.fetchStockBasicInfoRaw(request);
+    
+    // 标记为非缓存数据
+    if (response.sourceInfo) {
+      response.sourceInfo.cached = false;
+    }
+    
+    // 存入缓存
+    dataCacheManager.setStockBasicInfo(cacheKey, response);
+    
+    return response;
+  }
+
+  async getStockDailyData(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
+    const cacheKey = this.buildCacheKey('daily', request);
+    
+    // 尝试从缓存获取
+    const cached = dataCacheManager.getStockDailyData(cacheKey);
+    if (cached) {
+      // 标记为来自缓存并返回
+      return {
+        ...cached,
+        sourceInfo: {
+          name: cached.sourceInfo?.name || this.config.name,
+          requestId: cached.sourceInfo?.requestId || "",
+          timestamp: cached.sourceInfo?.timestamp || new Date(),
+          cached: true,
+        },
+      };
+    }
+
+    // 从数据源获取新数据
+    const response = await this.fetchStockDailyDataRaw(request);
+    
+    // 标记为非缓存数据
+    if (response.sourceInfo) {
+      response.sourceInfo.cached = false;
+    }
+    
+    // 存入缓存
+    dataCacheManager.setStockDailyData(cacheKey, response);
+    
+    return response;
+  }
 
   // 通用方法实现
 
@@ -103,21 +171,21 @@ export abstract class AbstractDataSource {
     // 检查秒级限制
     const secondKey = `second:${second}`;
     const secondRequests = this.rateLimitTracker.get(secondKey) || [];
-    if (secondRequests.length >= this.config.rateLimit.requestsPerSecond) {
+    if (secondRequests.length >= (this.config.rateLimit?.requestsPerSecond || 10)) {
       return false;
     }
 
     // 检查分钟级限制
     const minuteKey = `minute:${minute}`;
     const minuteRequests = this.rateLimitTracker.get(minuteKey) || [];
-    if (minuteRequests.length >= this.config.rateLimit.requestsPerMinute) {
+    if (minuteRequests.length >= (this.config.rateLimit?.requestsPerMinute || 100)) {
       return false;
     }
 
     // 检查日级限制
     const dayKey = `day:${day}`;
     const dayRequests = this.rateLimitTracker.get(dayKey) || [];
-    if (dayRequests.length >= this.config.rateLimit.requestsPerDay) {
+    if (dayRequests.length >= (this.config.rateLimit?.requestsPerDay || 1000)) {
       return false;
     }
 
@@ -468,5 +536,22 @@ export abstract class AbstractDataSource {
       undefined,
       error
     );
+  }
+
+  // 构建缓存键
+  protected buildCacheKey(type: 'basic' | 'daily', request?: DataFetchRequest): string {
+    const parts = [this.getName(), type];
+    
+    if (request) {
+      if (request.startDate) parts.push(`start_${request.startDate}`);
+      if (request.endDate) parts.push(`end_${request.endDate}`);
+      if (request.tsCodes?.length) {
+        parts.push(`codes_${request.tsCodes.slice(0, 5).join(',')}`); // 限制键长度
+      }
+      if (request.limit) parts.push(`limit_${request.limit}`);
+      if (request.offset) parts.push(`offset_${request.offset}`);
+    }
+    
+    return parts.join('_');
   }
 }

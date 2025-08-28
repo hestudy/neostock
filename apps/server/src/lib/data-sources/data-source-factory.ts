@@ -1,6 +1,7 @@
 import { AbstractDataSource } from "./abstract-data-source";
 import { TushareDataSource } from "./tushare-data-source";
 import { SinaDataSource } from "./sina-data-source";
+import { NeteaseDataSource } from "./netease-data-source";
 import { dataSourceConfigManager } from "./data-source-config";
 import { dataSourceManager } from "./data-source-manager";
 import { dataSourceHealthMonitor } from "./data-source-health";
@@ -36,6 +37,9 @@ export class DataSourceFactory {
       
       case 'sina':
         return new SinaDataSource();
+      
+      case 'netease':
+        return new NeteaseDataSource();
       
       default:
         throw new Error(`不支持的数据源类型: ${sourceName}`);

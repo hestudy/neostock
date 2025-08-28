@@ -37,7 +37,7 @@ export class SinaDataSource extends AbstractDataSource {
     }
 
     super(config);
-    this.apiUrl = config.apiUrl;
+    this.apiUrl = config.apiUrl || "https://hq.sinajs.cn";
 
     console.log("🔌 新浪财经数据源已初始化");
   }
@@ -62,7 +62,7 @@ export class SinaDataSource extends AbstractDataSource {
   }
 
   // 获取股票基础信息 (新浪财经主要提供实时数据，基础信息有限)
-  async getStockBasicInfo(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>> {
+  async fetchStockBasicInfoRaw(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>> {
     const requestId = this.generateRequestId();
     
     return this.retryOperation(async () => {
@@ -107,6 +107,9 @@ export class SinaDataSource extends AbstractDataSource {
       return {
         success: true,
         data: stocks,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: stocks.length,
         total: stocks.length,
         sourceInfo: {
           name: this.getName(),
@@ -119,7 +122,7 @@ export class SinaDataSource extends AbstractDataSource {
   }
 
   // 获取股票日线数据 (新浪财经主要提供当前交易日数据)
-  async getStockDailyData(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
+  async fetchStockDailyDataRaw(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
     const requestId = this.generateRequestId();
     
     return this.retryOperation(async () => {
@@ -167,6 +170,9 @@ export class SinaDataSource extends AbstractDataSource {
       return {
         success: true,
         data: dailyData,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: dailyData.length,
         total: dailyData.length,
         sourceInfo: {
           name: this.getName(),
@@ -255,7 +261,7 @@ export class SinaDataSource extends AbstractDataSource {
         const batch = tsCodes.slice(i, i + batchSize);
         
         try {
-          const response = await this.getStockDailyData({ tsCodes: batch });
+          const response = await this.fetchStockDailyDataRaw({ tsCodes: batch });
           allData.push(...response.data);
           
           // 进度提示
@@ -277,6 +283,9 @@ export class SinaDataSource extends AbstractDataSource {
       return {
         success: true,
         data: allData,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: allData.length,
         total: allData.length,
         sourceInfo: {
           name: this.getName(),
@@ -369,6 +378,9 @@ export class SinaDataSource extends AbstractDataSource {
       return {
         success: true,
         data: results,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: results.length,
         sourceInfo: {
           name: this.getName(),
           requestId,
@@ -454,6 +466,9 @@ export class SinaDataSource extends AbstractDataSource {
       return {
         success: true,
         data: transformedData,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: transformedData.length,
         total: transformedData.length,
         sourceInfo: {
           name: this.getName(),

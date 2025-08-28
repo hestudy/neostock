@@ -9,6 +9,7 @@ export { AbstractDataSource } from "./abstract-data-source";
 // 具体数据源实现
 export { TushareDataSource } from "./tushare-data-source";
 export { SinaDataSource } from "./sina-data-source";
+export { NeteaseDataSource } from "./netease-data-source";
 
 // 配置管理
 export { 

@@ -62,7 +62,7 @@ describe("SinaDataSource", () => {
         expect(response).toBeDefined();
         expect(response.success).toBe(true);
         expect(response.data).toBeInstanceOf(Array);
-        expect(response.sourceInfo.name).toBe("sina");
+        expect(response.sourceInfo?.name).toBe("sina");
         
         // 验证返回的数据结构
         for (const stock of response.data) {
@@ -91,7 +91,7 @@ describe("SinaDataSource", () => {
         expect(response).toBeDefined();
         expect(response.success).toBe(true);
         expect(response.data).toBeInstanceOf(Array);
-        expect(response.sourceInfo.name).toBe("sina");
+        expect(response.sourceInfo?.name).toBe("sina");
         
         // 验证返回的数据结构
         for (const dailyData of response.data) {
@@ -166,7 +166,7 @@ describe("SinaDataSource", () => {
         expect(response).toBeDefined();
         expect(response.success).toBe(true);
         expect(response.data).toBeInstanceOf(Array);
-        expect(response.sourceInfo.name).toBe("sina");
+        expect(response.sourceInfo?.name).toBe("sina");
         
         // 验证批量获取的数据
         if (response.data.length > 0) {

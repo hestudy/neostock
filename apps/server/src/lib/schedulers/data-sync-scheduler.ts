@@ -1,4 +1,5 @@
 import { DataSourceManager } from '../data-sources/data-source-manager.js';
+import type { StockBasicInfo } from '../../types/data-sources.js';
 
 export interface SchedulerConfig {
   cronExpression: string;
@@ -63,20 +64,22 @@ export class DataSyncScheduler {
 
     try {
       // 获取股票基础信息
-      const stocksData = await this.dataSourceManager.fetchStockBasicInfo();
+      const stocksResponse = await this.dataSourceManager.fetchStockBasicInfo();
+      const stocksData = stocksResponse.data;
       
       // 批量处理股票数据
       for (let i = 0; i < stocksData.length; i += this.config.batchSize) {
         const batch = stocksData.slice(i, i + this.config.batchSize);
         
         await Promise.allSettled(
-          batch.map(async (stock) => {
+          batch.map(async (stock: StockBasicInfo) => {
             try {
               // 获取日线数据
-              await this.dataSourceManager.fetchDailyData(
-                stock.ts_code,
-                this.getTodayDateString()
-              );
+              await this.dataSourceManager.fetchDailyData({
+                symbol: stock.ts_code,
+                startDate: this.getTodayDateString(),
+                endDate: this.getTodayDateString()
+              });
               processedStocks++;
             } catch (error) {
               errors.push(`股票 ${stock.ts_code} 处理失败: ${error}`);

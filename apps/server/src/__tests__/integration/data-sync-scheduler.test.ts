@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DataSyncScheduler } from '../../lib/schedulers/data-sync-scheduler.js';
+import type { DataFetchRequest } from '../../types/data-sources.js';
 
 // 创建简单的mock DataSourceManager
 class MockDataSourceManager {
@@ -14,6 +15,7 @@ describe('DataSyncScheduler Integration Tests', () => {
 
   beforeEach(() => {
     mockDataSourceManager = new MockDataSourceManager();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     scheduler = new DataSyncScheduler(mockDataSourceManager as any, {
       cronExpression: '0 17 * * *',
       batchSize: 10,
@@ -65,19 +67,39 @@ describe('DataSyncScheduler Integration Tests', () => {
         { ts_code: '000002.SZ', symbol: '000002', name: '万科A', area: '深圳', industry: '房地产开发', market: '主板', list_date: '19910129', is_hs: 'S' }
       ];
 
-      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue(mockStocks);
-      mockDataSourceManager.fetchDailyData.mockResolvedValue([
-        { 
-          ts_code: '000001.SZ', 
-          trade_date: '20250827', 
-          open: 10.5, 
-          high: 10.8, 
-          low: 10.3, 
-          close: 10.7, 
-          vol: 1000000, 
-          amount: 10700000 
+      // 返回包装格式的响应
+      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue({
+        success: true,
+        data: mockStocks,
+        sourceInfo: {
+          name: 'mock',
+          requestId: 'test-request',
+          timestamp: new Date(),
+          cached: false
         }
-      ]);
+      });
+
+      mockDataSourceManager.fetchDailyData.mockResolvedValue({
+        success: true,
+        data: [
+          { 
+            ts_code: '000001.SZ', 
+            trade_date: '20250827', 
+            open: 10.5, 
+            high: 10.8, 
+            low: 10.3, 
+            close: 10.7, 
+            vol: 1000000, 
+            amount: 10700000 
+          }
+        ],
+        sourceInfo: {
+          name: 'mock',
+          requestId: 'test-request',
+          timestamp: new Date(),
+          cached: false
+        }
+      });
 
       const result = await scheduler.triggerManualSync();
 
@@ -97,7 +119,17 @@ describe('DataSyncScheduler Integration Tests', () => {
         { ts_code: '000001.SZ', symbol: '000001', name: '平安银行', area: '深圳', industry: '银行', market: '主板', list_date: '19910403', is_hs: 'S' }
       ];
 
-      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue(mockStocks);
+      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue({
+        success: true,
+        data: mockStocks,
+        sourceInfo: {
+          name: 'mock',
+          requestId: 'test-request',
+          timestamp: new Date(),
+          cached: false
+        }
+      });
+      
       mockDataSourceManager.fetchDailyData.mockRejectedValue(new Error('API调用失败'));
 
       const result = await scheduler.triggerManualSync();
@@ -121,8 +153,27 @@ describe('DataSyncScheduler Integration Tests', () => {
         is_hs: 'S'
       }));
 
-      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue(mockStocks);
-      mockDataSourceManager.fetchDailyData.mockResolvedValue([]);
+      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue({
+        success: true,
+        data: mockStocks,
+        sourceInfo: {
+          name: 'mock',
+          requestId: 'test-request',
+          timestamp: new Date(),
+          cached: false
+        }
+      });
+
+      mockDataSourceManager.fetchDailyData.mockResolvedValue({
+        success: true,
+        data: [],
+        sourceInfo: {
+          name: 'mock',
+          requestId: 'test-request',
+          timestamp: new Date(),
+          cached: false
+        }
+      });
 
       const result = await scheduler.triggerManualSync();
 
@@ -135,7 +186,16 @@ describe('DataSyncScheduler Integration Tests', () => {
 
     it('应该防止并发同步', async () => {
       mockDataSourceManager.fetchStockBasicInfo.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve([]), 100))
+        () => new Promise(resolve => setTimeout(() => resolve({
+          success: true,
+          data: [],
+          sourceInfo: {
+            name: 'mock',
+            requestId: 'test-request',
+            timestamp: new Date(),
+            cached: false
+          }
+        }), 100))
       );
 
       // 启动第一个同步
@@ -162,7 +222,16 @@ describe('DataSyncScheduler Integration Tests', () => {
 
       // 使用较长延迟来测试状态
       mockDataSourceManager.fetchStockBasicInfo.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve([]), 50))
+        () => new Promise(resolve => setTimeout(() => resolve({
+          success: true,
+          data: [],
+          sourceInfo: {
+            name: 'mock',
+            requestId: 'test-request',
+            timestamp: new Date(),
+            cached: false
+          }
+        }), 50))
       );
 
       const syncPromise = scheduler.triggerManualSync();
@@ -196,15 +265,33 @@ describe('DataSyncScheduler Integration Tests', () => {
         { ts_code: '000003.SZ', symbol: '000003', name: '股票3', area: '深圳', industry: '银行', market: '主板', list_date: '20200101', is_hs: 'S' }
       ];
 
-      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue(mockStocks);
+      mockDataSourceManager.fetchStockBasicInfo.mockResolvedValue({
+        success: true,
+        data: mockStocks,
+        sourceInfo: {
+          name: 'mock',
+          requestId: 'test-request',
+          timestamp: new Date(),
+          cached: false
+        }
+      });
       
       // 让第二只股票失败
       mockDataSourceManager.fetchDailyData
-        .mockImplementation((tsCode: string) => {
-          if (tsCode === '000002.SZ') {
+        .mockImplementation((request?: DataFetchRequest) => {
+          if (request?.symbol === '000002.SZ') {
             return Promise.reject(new Error('数据获取失败'));
           }
-          return Promise.resolve([]);
+          return Promise.resolve({
+            success: true,
+            data: [],
+            sourceInfo: {
+              name: 'mock',
+              requestId: 'test-request',
+              timestamp: new Date(),
+              cached: false
+            }
+          });
         });
 
       const result = await scheduler.triggerManualSync();

@@ -1,8 +1,32 @@
 import { z } from 'zod';
-import { publicProcedure, router } from '../lib/trpc.js';
-import { DataSourceManager } from '../lib/data-sources/data-source-manager.js';
-import { DataSyncScheduler } from '../lib/schedulers/data-sync-scheduler.js';
-import { CredentialsManager } from '../lib/security/credentials-manager.js';
+import { publicProcedure, protectedProcedure, router } from '../lib/trpc';
+import { TRPCError } from '@trpc/server';
+import { DataSourceManager } from '../lib/data-sources/data-source-manager';
+import { DataSyncScheduler } from '../lib/schedulers/data-sync-scheduler';
+import { CredentialsManager } from '../lib/security/credentials-manager';
+
+// 管理员权限检查中间件
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  // 检查用户角色是否为管理员
+  // 注意：这里假设 session 对象包含用户信息
+  const userRole = (ctx.session.user as { role?: string })?.role;
+  
+  if (userRole !== 'admin') {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "需要管理员权限",
+      cause: `用户角色: ${userRole || 'unknown'}`,
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      // 确保管理员上下文
+      isAdmin: true,
+    },
+  });
+});
 
 // 速率限制
 interface RateLimiter {
@@ -70,9 +94,9 @@ export const dataSourcesRouter = router({
 
   /**
    * 手动触发数据更新
-   * 需要管理员权限 - 这里简化为检查特定头部
+   * 需要管理员权限
    */
-  triggerUpdate: publicProcedure
+  triggerUpdate: adminProcedure
     .input(z.object({ 
       force: z.boolean().optional(),
       clientId: z.string().optional()
@@ -165,7 +189,7 @@ export const dataSourcesRouter = router({
    * 切换主数据源
    * 需要管理员权限
    */
-  switchPrimary: publicProcedure
+  switchPrimary: adminProcedure
     .input(z.object({ 
       sourceId: z.string(),
       clientId: z.string().optional()
@@ -195,8 +219,9 @@ export const dataSourcesRouter = router({
 
   /**
    * 获取凭据状态（不包含实际密钥）
+   * 需要管理员权限
    */
-  getCredentialStatus: publicProcedure
+  getCredentialStatus: adminProcedure
     .input(z.object({ 
       keyId: z.string(),
       clientId: z.string().optional()
@@ -222,8 +247,9 @@ export const dataSourcesRouter = router({
 
   /**
    * 获取需要轮换的密钥列表
+   * 需要管理员权限
    */
-  getKeysRequiringRotation: publicProcedure
+  getKeysRequiringRotation: adminProcedure
     .input(z.object({ clientId: z.string().optional() }))
     .query(async ({ input }) => {
       const clientId = input.clientId || 'admin';

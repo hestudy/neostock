@@ -75,7 +75,7 @@ class RetryStrategy {
 
 describe('RetryStrategy Tests', () => {
   let retryStrategy: RetryStrategy;
-  let mockOperation: vi.MockedFunction<() => Promise<string>>;
+  let mockOperation: ReturnType<typeof vi.fn<() => Promise<string>>>;
 
   beforeEach(() => {
     const defaultConfig: RetryConfig = {

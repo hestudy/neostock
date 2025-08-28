@@ -1,0 +1,15 @@
+trace:
+  totals:
+    requirements: 7
+    full: 4
+    partial: 2
+    none: 1
+  planning_ref: 'docs/qa/assessments/1.2-trace-20250828.md'
+  uncovered:
+    - ac: 'AC3'
+      reason: 'No test found for data quality validation system'
+    - ac: 'AC6'
+      reason: 'Partial coverage - missing API rate limiting and audit tests'
+    - ac: 'AC7'
+      reason: 'Partial coverage - missing encryption depth and leak detection tests'
+  notes: 'See docs/qa/assessments/1.2-trace-20250828.md for complete traceability matrix'

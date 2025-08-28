@@ -516,6 +516,60 @@ export class DataSourceManager {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // 获取股票基础信息 (兼容调度器)
+  async fetchStockBasicInfo(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>> {
+    return this.getStockBasicInfo(request);
+  }
+
+  // 获取股票日线数据 (兼容调度器)
+  async fetchDailyData(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
+    return this.getStockDailyData(request);
+  }
+
+  // 设置主数据源 (兼容路由器)
+  async setPrimarySource(sourceName: string): Promise<boolean> {
+    try {
+      if (!this.dataSources.has(sourceName)) {
+        console.warn(`⚠️  数据源 ${sourceName} 未注册`);
+        return false;
+      }
+
+      this.currentPrimarySource = sourceName;
+      console.log(`🔄 主数据源已设置为: ${sourceName}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ 设置主数据源失败:`, error);
+      return false;
+    }
+  }
+
+  // 获取所有健康状态 (兼容路由器)  
+  getAllHealth(): Record<string, { 
+    isHealthy: boolean; 
+    responseTime: number; 
+    lastCheck: Date; 
+    errorMessage?: string; 
+  }> {
+    const healthStatuses = dataSourceHealthMonitor.getAllHealthStatus();
+    const result: Record<string, { 
+      isHealthy: boolean; 
+      responseTime: number; 
+      lastCheck: Date; 
+      errorMessage?: string; 
+    }> = {};
+    
+    healthStatuses.forEach((health, sourceName) => {
+      result[sourceName] = {
+        isHealthy: health.isHealthy,
+        responseTime: health.responseTime || 0,
+        lastCheck: health.lastChecked,
+        errorMessage: health.errorMessage,
+      };
+    });
+    
+    return result;
+  }
+
   // 清理资源
   destroy(): void {
     dataSourceHealthMonitor.stopAllMonitoring();

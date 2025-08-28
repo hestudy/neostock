@@ -45,8 +45,8 @@ export class TushareDataSource extends AbstractDataSource {
     }
 
     super(config);
-    this.apiToken = config.apiKey;
-    this.apiUrl = config.apiUrl;
+    this.apiToken = config.apiKey || "";
+    this.apiUrl = config.apiUrl || "http://api.tushare.pro";
 
     console.log("🔌 Tushare 数据源已初始化");
   }
@@ -76,8 +76,8 @@ export class TushareDataSource extends AbstractDataSource {
     }
   }
 
-  // 获取股票基础信息
-  async getStockBasicInfo(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>> {
+  // 获取股票基础信息 (原始数据，不带缓存)
+  async fetchStockBasicInfoRaw(request?: DataFetchRequest): Promise<DataFetchResponse<StockBasicInfo>> {
     const requestId = this.generateRequestId();
     
     return this.retryOperation(async () => {
@@ -122,6 +122,9 @@ export class TushareDataSource extends AbstractDataSource {
       return {
         success: true,
         data: stocks,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: stocks.length,
         total: stocks.length,
         hasMore: request?.limit ? stocks.length === request.limit : false,
         nextOffset: request?.offset ? (request.offset + stocks.length) : undefined,
@@ -135,8 +138,8 @@ export class TushareDataSource extends AbstractDataSource {
     }, "获取股票基础信息");
   }
 
-  // 获取股票日线数据
-  async getStockDailyData(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
+  // 获取股票日线数据 (原始数据，不带缓存)
+  async fetchStockDailyDataRaw(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
     const requestId = this.generateRequestId();
     
     return this.retryOperation(async () => {
@@ -194,6 +197,9 @@ export class TushareDataSource extends AbstractDataSource {
       return {
         success: true,
         data: dailyData,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: dailyData.length,
         total: dailyData.length,
         hasMore: request?.limit ? dailyData.length === request.limit : false,
         nextOffset: request?.offset ? (request.offset + dailyData.length) : undefined,
@@ -427,6 +433,9 @@ export class TushareDataSource extends AbstractDataSource {
     return {
       success: errors.length === 0,
       data: allData,
+      source: this.getName(),
+      timestamp: new Date(),
+      count: allData.length,
       total: allData.length,
       errorMessage: errors.length > 0 ? `部分数据获取失败: ${errors.slice(0, 3).join("; ")}${errors.length > 3 ? "..." : ""}` : undefined,
       sourceInfo: {
@@ -470,6 +479,9 @@ export class TushareDataSource extends AbstractDataSource {
       return {
         success: true,
         data: dailyData,
+        source: this.getName(),
+        timestamp: new Date(),
+        count: dailyData.length,
         total: dailyData.length,
         sourceInfo: {
           name: this.getName(),

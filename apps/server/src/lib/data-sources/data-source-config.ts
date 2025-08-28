@@ -169,7 +169,11 @@ export class DataSourceConfigManager {
       // 深度合并嵌套对象
       rateLimit: { ...existing.rateLimit, ...updates.rateLimit },
       retryConfig: { ...existing.retryConfig, ...updates.retryConfig },
-      healthCheck: { ...existing.healthCheck, ...updates.healthCheck },
+      healthCheck: { 
+        endpoint: updates.healthCheck?.endpoint ?? existing.healthCheck?.endpoint ?? "/health",
+        interval: updates.healthCheck?.interval ?? existing.healthCheck?.interval ?? 30000,
+        timeout: updates.healthCheck?.timeout ?? existing.healthCheck?.timeout ?? 10000,
+      },
     };
 
     this.configs.set(name, updated);
@@ -211,11 +215,11 @@ export class DataSourceConfigManager {
         errors.push("每秒请求限制必须是大于0的数字");
       }
 
-      if (typeof requestsPerMinute !== "number" || requestsPerMinute < requestsPerSecond) {
+      if (typeof requestsPerMinute !== "number" || requestsPerMinute < (requestsPerSecond || 1)) {
         errors.push("每分钟请求限制必须大于等于每秒请求限制");
       }
 
-      if (typeof requestsPerDay !== "number" || requestsPerDay < requestsPerMinute) {
+      if (typeof requestsPerDay !== "number" || requestsPerDay < (requestsPerMinute || 1)) {
         errors.push("每日请求限制必须大于等于每分钟请求限制");
       }
     }
@@ -339,8 +343,8 @@ export class DataSourceConfigManager {
         name: config.name,
         priority: config.priority,
         status,
-        apiUrl: config.apiUrl,
-        maxDailyRequests: config.rateLimit.requestsPerDay,
+        apiUrl: config.apiUrl || "",
+        maxDailyRequests: config.rateLimit?.requestsPerDay || 0,
       };
     }).sort((a, b) => a.priority - b.priority);
   }
