@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "vitest";
 import { DataSourceConfigManager, DATA_SOURCE_CONFIGS } from "../../../lib/data-sources/data-source-config";
 import type { DataSourceConfig } from "../../../types/data-sources";
 

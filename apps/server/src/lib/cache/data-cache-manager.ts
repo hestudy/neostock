@@ -123,8 +123,21 @@ export class DataCacheManager {
 
   // 删除缓存条目
   delete(key: string): boolean {
-    const cacheKey = this.buildKey(key);
-    const deleted = this.cache.delete(cacheKey);
+    // 尝试所有可能的前缀，因为key可能是基础形式
+    const possibleKeys = [
+      this.buildKey(key),
+      this.buildKey(`stock_basic_${key}`),
+      this.buildKey(`stock_daily_${key}`)
+    ];
+    
+    let deleted = false;
+    for (const cacheKey of possibleKeys) {
+      if (this.cache.delete(cacheKey)) {
+        deleted = true;
+        break;
+      }
+    }
+    
     if (deleted) {
       this.updateStats('size', this.cache.size);
     }
@@ -149,19 +162,26 @@ export class DataCacheManager {
 
   // 检查缓存是否包含某个键
   has(key: string): boolean {
-    const cacheKey = this.buildKey(key);
-    const entry = this.cache.get(cacheKey);
+    // 尝试所有可能的前缀，因为key可能是基础形式
+    const possibleKeys = [
+      this.buildKey(key),
+      this.buildKey(`stock_basic_${key}`),
+      this.buildKey(`stock_daily_${key}`)
+    ];
     
-    if (!entry) {
-      return false;
+    for (const cacheKey of possibleKeys) {
+      const entry = this.cache.get(cacheKey);
+      
+      if (entry) {
+        if (this.isExpired(entry)) {
+          this.cache.delete(cacheKey);
+          continue;
+        }
+        return true;
+      }
     }
 
-    if (this.isExpired(entry)) {
-      this.cache.delete(cacheKey);
-      return false;
-    }
-
-    return true;
+    return false;
   }
 
   // 获取所有缓存键

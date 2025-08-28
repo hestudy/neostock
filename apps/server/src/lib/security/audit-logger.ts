@@ -171,11 +171,28 @@ export class AuditLogger {
     }
 
     // 按日期范围过滤
-    if (filter.startDate) {
-      filteredLogs = filteredLogs.filter(log => log.timestamp >= filter.startDate!);
-    }
-    if (filter.endDate) {
-      filteredLogs = filteredLogs.filter(log => log.timestamp <= filter.endDate!);
+    if (filter.startDate && filter.endDate) {
+      // 当同时有开始和结束时间时，确保范围有效
+      const startTime = filter.startDate.getTime();
+      const endTime = filter.endDate.getTime();
+      
+      if (startTime <= endTime) {
+        filteredLogs = filteredLogs.filter(log => {
+          const logTime = log.timestamp.getTime();
+          return logTime >= startTime && logTime <= endTime;
+        });
+      } else {
+        // 如果开始时间晚于结束时间，返回空数组
+        return [];
+      }
+    } else {
+      // 单独处理开始时间或结束时间
+      if (filter.startDate) {
+        filteredLogs = filteredLogs.filter(log => log.timestamp.getTime() >= filter.startDate!.getTime());
+      }
+      if (filter.endDate) {
+        filteredLogs = filteredLogs.filter(log => log.timestamp.getTime() <= filter.endDate!.getTime());
+      }
     }
 
     // 按时间倒序排序

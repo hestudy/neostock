@@ -90,6 +90,11 @@ export class CredentialsManager {
       oldCredential.isActive = false;
     }
 
+    // 清除旧的访问日志，重新开始监控
+    this.auditLogs = this.auditLogs.filter(
+      log => !(log.keyId === keyId && log.action === 'access')
+    );
+
     this.storeCredential(keyId, newPlainTextKey);
     this.logAuditEvent('rotate', keyId, 'system', '密钥已轮换');
   }
@@ -98,6 +103,12 @@ export class CredentialsManager {
    * 检测密钥泄露 - 简化版本，检查异常访问模式
    */
   public detectLeakage(keyId: string): boolean {
+    // 检查密钥是否存在
+    const credentialInfo = this.credentials.get(keyId);
+    if (!credentialInfo) {
+      return false; // 不存在的密钥不触发泄露检测
+    }
+
     const recent = this.getRecentAccessLogs(keyId, 24 * 60 * 60 * 1000); // 24小时内
     
     // 异常访问模式检测
@@ -196,7 +207,7 @@ export class CredentialsManager {
     return this.auditLogs.filter(
       log => log.keyId === keyId && 
              log.action === 'access' && 
-             log.timestamp > cutoff
+             log.timestamp.getTime() >= cutoff.getTime()
     );
   }
 }
