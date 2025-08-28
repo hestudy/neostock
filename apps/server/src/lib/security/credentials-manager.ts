@@ -238,8 +238,20 @@ export class CredentialsManager {
     });
 
     // 保持最近1000条日志，避免内存无限增长
+    // 但优先保留重要的安全事件（leak_detected, rotate, create）
     if (this.auditLogs.length > 1000) {
-      this.auditLogs.splice(0, this.auditLogs.length - 1000);
+      const importantLogs = this.auditLogs.filter(log => 
+        log.action === 'leak_detected' || log.action === 'rotate' || log.action === 'create'
+      );
+      const accessLogs = this.auditLogs.filter(log => log.action === 'access');
+      
+      // 保留所有重要日志 + 最新的访问日志
+      const maxAccessLogs = Math.max(0, 1000 - importantLogs.length);
+      const recentAccessLogs = accessLogs.slice(-maxAccessLogs);
+      
+      this.auditLogs = [...importantLogs, ...recentAccessLogs].sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
     }
   }
 
