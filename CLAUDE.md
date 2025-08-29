@@ -49,6 +49,13 @@ bun test:e2e:ui               # UI 模式运行 E2E 测试
 bun test:e2e:report           # 显示 Playwright 测试报告
 ```
 
+### 构建和部署
+```bash
+bun build                     # 构建所有应用
+turbo -F server compile       # 编译服务器为可执行文件
+turbo -F web serve            # 预览构建的前端应用
+```
+
 ### 质量门控 (在 apps/server 目录下)
 ```bash
 bun run quality:gate          # 质量门控检查
@@ -125,3 +132,4 @@ neostock/
 - 数据库变更必须通过 Drizzle 迁移系统
 - 使用项目的质量门控确保代码质量
 - API 变更需要更新相关文档
+- 代码提交前必须运行 `bun lint` 和 `bun test` 确保通过所有检查
