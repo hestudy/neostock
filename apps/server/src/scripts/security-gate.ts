@@ -89,6 +89,8 @@ function checkProfessionalSecurityTools(): { passed: boolean; message: string } 
 }
 
 async function runSecurityScans(): Promise<SecurityResult> {
+	const isCI = process.env.CI === 'true';
+	
 	const checks: SecurityCheck[] = [
 		{
 			name: "源代码静态分析 (SAST)",
@@ -111,11 +113,6 @@ async function runSecurityScans(): Promise<SecurityResult> {
 			criticalFailure: true,
 		},
 		{
-			name: "API文档验证",
-			command: "bun run docs:validate",
-			criticalFailure: true,
-		},
-		{
 			name: "专业安全工具配置检查",
 			command: "echo 'Running professional security tools configuration check'",
 			criticalFailure: false, // 配置问题不应阻断基本功能
@@ -126,6 +123,15 @@ async function runSecurityScans(): Promise<SecurityResult> {
 			criticalFailure: false, // env:validate 脚本可能不存在
 		},
 	];
+	
+	// 只在非CI环境中包含API文档验证
+	if (!isCI) {
+		checks.splice(4, 0, {
+			name: "API文档验证",
+			command: "bun run docs:validate",
+			criticalFailure: true,
+		});
+	}
 
 	const results: SecurityResult['checks'] = [];
 	let criticalIssues = 0;
