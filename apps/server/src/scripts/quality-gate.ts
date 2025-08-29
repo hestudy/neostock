@@ -65,7 +65,7 @@ async function executeCheck(check: QualityCheck): Promise<QualityCheckResult> {
 			const isTestCommand = check.command.includes('test');
 			const fullOutput = stdout + stderr;
 			const hasTestFailures = isTestCommand && fullOutput.includes('(fail)');
-			const hasTestPasses = isTestCommand && fullOutput.includes('(pass)');
+			
 			
 			// 如果是测试命令，检查是否真正有测试失败
 			// 只要没有 (fail) 出现，就认为测试通过
