@@ -65,6 +65,7 @@ jobs:
         run: bun run docs:validate
         timeout-minutes: 2
         env:
+          CI: true
           AUTO_SYNC_DOCS: false
         
       - name: Quality Gate Check

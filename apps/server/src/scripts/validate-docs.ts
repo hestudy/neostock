@@ -150,8 +150,12 @@ function main() {
 	console.log("🔍 验证API文档...");
 	
 	// 在CI环境中跳过严格的文档验证
-	if (process.env.CI === 'true' || process.env.AUTO_SYNC_DOCS === 'false') {
+	const isCI = process.env.CI === 'true';
+	const skipDocs = process.env.AUTO_SYNC_DOCS === 'false';
+	
+	if (isCI || skipDocs) {
 		console.log("📋 CI环境检测到，跳过严格的文档验证");
+		console.log(`   CI: ${process.env.CI}, AUTO_SYNC_DOCS: ${process.env.AUTO_SYNC_DOCS}`);
 		console.log("✅ 文档验证跳过（CI模式）");
 		return;
 	}
