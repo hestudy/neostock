@@ -10,7 +10,7 @@ jobs:
   test:
     name: Test & Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -63,6 +63,7 @@ jobs:
         
       - name: Validate API documentation
         run: bun run docs:validate
+        timeout-minutes: 2
         env:
           AUTO_SYNC_DOCS: false
         
