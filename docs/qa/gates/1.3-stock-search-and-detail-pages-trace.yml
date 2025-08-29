@@ -1,0 +1,89 @@
+trace:
+  totals:
+    requirements: 5
+    full: 0
+    partial: 3
+    none: 2
+  planning_ref: 'docs/qa/assessments/1.3-trace-20250829.md'
+  uncovered:
+    - ac: 'AC3'
+      reason: '详情页面路由和实时更新测试完全缺失'
+    - ac: 'AC5' 
+      reason: '路由集成、预加载、懒加载测试完全缺失'
+    - ac: 'AC1_gaps'
+      reason: '搜索历史、实时过滤前端集成测试缺失'
+    - ac: 'AC2_gaps'
+      reason: '4000股票数据量性能测试、缓存机制测试缺失'
+  critical_gaps:
+    - gap: 'E2E测试完全缺失'
+      risk: 'HIGH'
+      impact: '前后端集成问题和用户工作流故障无法检测'
+    - gap: '路由系统集成测试缺失'
+      risk: 'HIGH' 
+      impact: '路由故障会导致应用不可用'
+    - gap: '实时功能测试缺失'
+      risk: 'MEDIUM'
+      impact: '数据不同步影响用户体验'
+    - gap: '大规模数据性能测试不足'
+      risk: 'MEDIUM'
+      impact: '生产环境性能问题'
+  covered_tests:
+    api_layer:
+      - file: 'apps/server/src/__tests__/routers/stocks.test.ts'
+        coverage: '股票API功能测试完整(搜索、列表、详情、日线数据)'
+      - file: 'apps/server/src/__tests__/performance/stocks-performance.test.ts'
+        coverage: 'API性能测试基础(<100ms阈值验证)'
+    component_layer:
+      - file: 'apps/web/src/components/stocks/__tests__/stock-search.test.tsx'
+        coverage: '搜索组件功能和移动端优化测试'
+      - file: 'apps/web/src/components/stocks/__tests__/stock-favorite-button.test.tsx'
+        coverage: '收藏按钮交互测试'
+      - file: 'apps/web/src/components/stocks/__tests__/stock-layout.test.tsx'
+        coverage: '布局组件响应式测试基础'
+  quality_score: 45
+  layer_scores:
+    database: 85
+    api: 80  
+    component: 60
+    routing: 0
+    e2e: 0
+  action_items:
+    p0_immediate:
+      - '创建股票搜索E2E测试套件'
+      - '实现路由集成和导航测试'
+      - '验证API性能需求(<100ms, <200ms, <2s)'
+    p1_short_term:
+      - '完善响应式设计测试覆盖'
+      - '添加实时功能和缓存机制测试'
+      - '实现大规模数据性能基准测试'
+    p2_long_term:
+      - '建立自动化性能回归测试'
+      - '实现跨浏览器兼容性测试'
+      - '添加可访问性(a11y)测试覆盖'
+  gate_decision: 'CONCERNS'
+  decision_rationale: |
+    Story 1.3存在严重测试覆盖缺口：
+    1. E2E测试完全缺失(高风险) - 用户完整搜索旅程无验证
+    2. 路由系统集成测试缺失(高风险) - TanStack Router集成、预加载、懒加载未测试
+    3. 详情页面功能测试不完整 - 仅有API层测试，缺少路由和实时更新测试
+    4. 性能需求验证不足 - 大规模数据测试和缓存机制测试缺失
+    
+    虽然API层和基础组件层测试覆盖较好，但关键用户体验路径未验证。
+    建议在部署前完成P0级别的E2E测试和路由集成测试。
+  notes: |
+    详细需求跟踪分析参见: docs/qa/assessments/1.3-trace-20250829.md
+    
+    已验证的测试层级:
+    ✅ 数据库Schema和迁移测试
+    ✅ 股票API全功能单元测试  
+    ✅ API基础性能测试(<100ms)
+    ✅ 搜索组件单元测试
+    ✅ 收藏功能组件测试
+    ✅ 响应式布局组件基础测试
+    
+    关键缺失:
+    ❌ 端到端用户旅程测试
+    ❌ 路由导航和预加载测试
+    ❌ 详情页面集成测试
+    ❌ 实时数据更新测试
+    ❌ 大规模性能基准测试

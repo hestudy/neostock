@@ -3,6 +3,7 @@ import { z } from "zod";
 import { performanceRouter } from "./performance";
 import { databaseHealthChecker } from "../lib/database-health";
 import { dataSourcesRouter } from "./data-sources";
+import { stocksRouter } from "./stocks";
 
 export const appRouter = router({
 	healthCheck: publicProcedure
@@ -104,5 +105,7 @@ export const appRouter = router({
 	performance: performanceRouter,
 	// Data sources management routes  
 	dataSources: dataSourcesRouter,
+	// Stock data management routes
+	stocks: stocksRouter,
 });
 export type AppRouter = typeof appRouter;

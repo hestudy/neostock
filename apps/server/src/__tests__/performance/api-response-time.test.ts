@@ -53,7 +53,7 @@ describe('API Performance Tests - Response Time Validation', () => {
         const startTime = performance.now();
         
         try {
-          await testClient.stocks.search.query({ term });
+          await testClient.stocks.search.query({ keyword: term });
         } catch {
           // API可能还未实现，但我们要测试响应时间框架
         }
@@ -70,7 +70,7 @@ describe('API Performance Tests - Response Time Validation', () => {
         const startTime = performance.now();
         
         try {
-          await testClient.stocks.detail.query({ code });
+          await testClient.stocks.detail.query({ ts_code: code });
         } catch {
           // API可能还未实现
         }

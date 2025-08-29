@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StocksIndexRouteImport } from './routes/stocks/index'
+import { Route as StocksSymbolRouteImport } from './routes/stocks/$symbol'
 import { Route as AdminPerformanceRouteImport } from './routes/admin/performance'
 
 const LoginRoute = LoginRouteImport.update({
@@ -29,6 +31,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StocksIndexRoute = StocksIndexRouteImport.update({
+  id: '/stocks/',
+  path: '/stocks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StocksSymbolRoute = StocksSymbolRouteImport.update({
+  id: '/stocks/$symbol',
+  path: '/stocks/$symbol',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   id: '/admin/performance',
   path: '/admin/performance',
@@ -40,12 +52,16 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/stocks/$symbol': typeof StocksSymbolRoute
+  '/stocks': typeof StocksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/stocks/$symbol': typeof StocksSymbolRoute
+  '/stocks': typeof StocksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +69,34 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/stocks/$symbol': typeof StocksSymbolRoute
+  '/stocks/': typeof StocksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/admin/performance'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/admin/performance'
+    | '/stocks/$symbol'
+    | '/stocks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/admin/performance'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/admin/performance'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/admin/performance'
+    | '/stocks/$symbol'
+    | '/stocks'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/admin/performance'
+    | '/stocks/$symbol'
+    | '/stocks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +104,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
+  StocksSymbolRoute: typeof StocksSymbolRoute
+  StocksIndexRoute: typeof StocksIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,6 +131,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stocks/': {
+      id: '/stocks/'
+      path: '/stocks'
+      fullPath: '/stocks'
+      preLoaderRoute: typeof StocksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stocks/$symbol': {
+      id: '/stocks/$symbol'
+      path: '/stocks/$symbol'
+      fullPath: '/stocks/$symbol'
+      preLoaderRoute: typeof StocksSymbolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/performance': {
       id: '/admin/performance'
       path: '/admin/performance'
@@ -107,6 +160,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
+  StocksSymbolRoute: StocksSymbolRoute,
+  StocksIndexRoute: StocksIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
