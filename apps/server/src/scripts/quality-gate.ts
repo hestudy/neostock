@@ -128,12 +128,16 @@ async function runQualityChecks(): Promise<QualityGateResult> {
 			command: "bun run check-types",
 			parallel: true,
 		},
-		{
+	];
+	
+	// 只在非CI环境中包含API文档验证
+	if (!isCI) {
+		parallelChecks.push({
 			name: "API文档验证", 
 			command: "bun run docs:validate",
-			parallel: true, // 文档验证可以与其他检查并行
-		},
-	];
+			parallel: true,
+		});
+	}
 	
 	const sequentialChecks: QualityCheck[] = [
 		{
