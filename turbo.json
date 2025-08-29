@@ -46,7 +46,8 @@
 			"persistent": true
 		},
 		"docs:validate": {
-			"dependsOn": ["^docs:validate"]
+			"dependsOn": ["^docs:validate"],
+			"env": ["CI", "AUTO_SYNC_DOCS"]
 		},
 		"quality:gate": {
 			"dependsOn": ["^quality:gate"]
