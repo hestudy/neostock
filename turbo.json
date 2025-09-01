@@ -1,62 +1,61 @@
 {
-	"$schema": "https://turbo.build/schema.json",
-	"ui": "tui",
-	"tasks": {
-		"build": {
-			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**"]
-		},
-		"test": {
-			"dependsOn": ["^test"]
-		},
-		"test:coverage": {
-			"dependsOn": ["^test:coverage"]
-		},
-		"test:performance": {
-			"dependsOn": ["^test:performance"]
-		},
-		"lint": {
-			"dependsOn": ["^lint"]
-		},
-		"lint:fix": {
-			"dependsOn": ["^lint:fix"]
-		},
-		"check-types": {
-			"dependsOn": ["^check-types"]
-		},
-		"dev": {
-			"cache": false,
-			"persistent": true
-		},
-		"db:push": {
-			"cache": false,
-			"persistent": true
-		},
-		"db:studio": {
-			"cache": false,
-			"persistent": true
-		},
-		"db:migrate": {
-			"cache": false,
-			"persistent": true
-		},
-		"db:generate": {
-			"cache": false,
-			"persistent": true
-		},
-		"docs:validate": {
-			"dependsOn": ["^docs:validate"],
-			"env": ["CI", "AUTO_SYNC_DOCS"]
-		},
-		"quality:gate": {
-			"dependsOn": ["^quality:gate"]
-		},
-		"security:gate": {
-			"dependsOn": ["^security:gate"]
-		},
-		"pre-deploy": {
-			"dependsOn": ["^pre-deploy"]
-		}
-	}
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
+    },
+    "test:coverage": {
+      "dependsOn": ["^test:coverage"]
+    },
+    "test:performance": {
+      "dependsOn": ["^test:performance"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^lint:fix"]
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:push": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:generate": {
+      "cache": false,
+      "persistent": true
+    },
+    "docs:validate": {
+      "dependsOn": ["^docs:validate"],
+      "env": ["CI", "AUTO_SYNC_DOCS"]
+    },
+    "quality:gate": {
+      "dependsOn": ["^quality:gate"]
+    },
+    "security:gate": {
+      "dependsOn": ["^security:gate"]
+    },
+    "pre-deploy": {
+      "dependsOn": ["^pre-deploy"]
+    }
+  }
 }

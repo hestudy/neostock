@@ -14,19 +14,12 @@ export default defineConfig({
 	},
 	test: {
 		globals: true,
-		environment: 'jsdom',
+		environment: 'happy-dom',
 		setupFiles: ['./src/test-setup.ts'],
 		mockReset: true,
 		restoreMocks: true,
 		includeSource: ['src/**/*.{js,ts,tsx}'],
 		testTimeout: 10000,
-		environmentOptions: {
-			jsdom: {
-				resources: 'usable',
-				url: 'http://localhost:3001',
-				pretendToBeVisual: true,
-			},
-		},
 	},
 	define: {
 		'import.meta.vitest': 'undefined',
