@@ -30,8 +30,8 @@ if (typeof window !== 'undefined') {
   window.scrollTo = vi.fn()
 } else if (typeof global !== 'undefined') {
   // 如果window未定义，确保document在global中可用
-  if (typeof (global as any).document === 'undefined') {
-    (global as any).document = {
+  if (typeof (global as unknown as { document?: unknown }).document === 'undefined') {
+    (global as unknown as { document: unknown }).document = {
       body: { appendChild: vi.fn(), removeChild: vi.fn() },
       createElement: vi.fn(() => ({ 
         style: {},
@@ -45,8 +45,8 @@ if (typeof window !== 'undefined') {
       querySelectorAll: vi.fn(() => [])
     };
   }
-  if (typeof (global as any).window === 'undefined') {
-    (global as any).window = {
+  if (typeof (global as unknown as { window?: unknown }).window === 'undefined') {
+    (global as unknown as { window: unknown }).window = {
       matchMedia: vi.fn().mockImplementation(() => ({
         matches: false,
         addListener: vi.fn(),

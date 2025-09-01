@@ -101,15 +101,17 @@ describe('实时数据更新简化测试', () => {
 
     it('应该处理null时间戳', () => {
       const nullTime: Date | null = null;
-      const result = nullTime?.toISOString();
+      // TypeScript类型保护测试
+      expect(nullTime).toBeNull();
       
-      expect(result).toBeUndefined();
+      const validTime = new Date();
+      expect(validTime.toISOString()).toBeDefined();
     });
   });
 
   describe('缓存机制', () => {
     it('应该支持数据缓存', () => {
-      const cache = new Map<string, any>();
+      const cache = new Map<string, { price: number; timestamp: number }>();
       const key = 'stock_000001';
       const value = { price: 100, timestamp: Date.now() };
       
