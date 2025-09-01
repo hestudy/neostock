@@ -6,6 +6,13 @@ import { dataSourceConfigManager } from "./data-source-config";
 import { dataSourceManager } from "./data-source-manager";
 import { dataSourceHealthMonitor } from "./data-source-health";
 
+// 测试环境日志控制
+const log = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
+    log(...args);
+  }
+};
+
 // 数据源工厂类
 export class DataSourceFactory {
   private static instance: DataSourceFactory | null = null;
@@ -29,7 +36,7 @@ export class DataSourceFactory {
       throw new Error(`数据源配置未找到: ${sourceName}`);
     }
 
-    console.log(`🏭 创建数据源实例: ${sourceName}`);
+    log(`🏭 创建数据源实例: ${sourceName}`);
 
     switch (sourceName.toLowerCase()) {
       case 'tushare':
@@ -49,12 +56,12 @@ export class DataSourceFactory {
   // 初始化数据源
   async initializeDataSource(sourceName: string): Promise<void> {
     if (this.initializedSources.has(sourceName)) {
-      console.log(`📋 数据源 ${sourceName} 已初始化，跳过`);
+      log(`📋 数据源 ${sourceName} 已初始化，跳过`);
       return;
     }
 
     try {
-      console.log(`🚀 初始化数据源: ${sourceName}`);
+      log(`🚀 初始化数据源: ${sourceName}`);
       
       // 创建数据源实例
       const dataSource = this.createDataSource(sourceName);
@@ -65,7 +72,7 @@ export class DataSourceFactory {
       // 标记为已初始化
       this.initializedSources.add(sourceName);
       
-      console.log(`✅ 数据源 ${sourceName} 初始化成功`);
+      log(`✅ 数据源 ${sourceName} 初始化成功`);
       
     } catch (error) {
       console.error(`❌ 数据源 ${sourceName} 初始化失败:`, error);
@@ -84,7 +91,7 @@ export class DataSourceFactory {
   }
 
   private async _initializeAllDataSources(): Promise<void> {
-    console.log("🌟 开始初始化所有数据源");
+    log("🌟 开始初始化所有数据源");
     
     const configSummary = dataSourceConfigManager.getConfigSummary();
     const initResults: Array<{ name: string; success: boolean; error?: string }> = [];
@@ -134,13 +141,13 @@ export class DataSourceFactory {
     const successful = initResults.filter(r => r.success);
     const failed = initResults.filter(r => !r.success);
     
-    console.log(`📊 数据源初始化完成:`);
-    console.log(`  ✅ 成功: ${successful.length} 个 (${successful.map(r => r.name).join(', ')})`);
+    log(`📊 数据源初始化完成:`);
+    log(`  ✅ 成功: ${successful.length} 个 (${successful.map(r => r.name).join(', ')})`);
     
     if (failed.length > 0) {
-      console.log(`  ❌ 失败: ${failed.length} 个`);
+      log(`  ❌ 失败: ${failed.length} 个`);
       failed.forEach(f => {
-        console.log(`    - ${f.name}: ${f.error}`);
+        log(`    - ${f.name}: ${f.error}`);
       });
     }
     
@@ -149,7 +156,7 @@ export class DataSourceFactory {
       throw new Error("所有数据源初始化都失败，系统无法正常运行");
     }
     
-    console.log("🎉 数据源系统初始化完成");
+    log("🎉 数据源系统初始化完成");
   }
 
   // 获取已初始化的数据源列表
@@ -164,7 +171,7 @@ export class DataSourceFactory {
 
   // 重新初始化数据源
   async reinitializeDataSource(sourceName: string): Promise<void> {
-    console.log(`🔄 重新初始化数据源: ${sourceName}`);
+    log(`🔄 重新初始化数据源: ${sourceName}`);
     
     // 先注销现有的数据源
     dataSourceManager.unregisterDataSource(sourceName);
@@ -180,7 +187,7 @@ export class DataSourceFactory {
     factoryFn: () => AbstractDataSource
   ): void {
     // 这里可以扩展支持更多数据源类型
-    console.log(`📝 注册新数据源类型: ${typeName}`);
+    log(`📝 注册新数据源类型: ${typeName}`);
     // 实现存储factory函数的逻辑
     // 暂时不实现，预留扩展点
     void factoryFn;
@@ -240,7 +247,7 @@ export class DataSourceFactory {
     }>;
     recommendations: string[];
   }> {
-    console.log("🔍 执行系统健康检查");
+    log("🔍 执行系统健康检查");
     
     const configs = dataSourceConfigManager.getConfigSummary();
     const details: Array<{
@@ -330,7 +337,7 @@ export class DataSourceFactory {
     this.initializedSources.clear();
     this.initializationPromise = null;
     dataSourceManager.destroy();
-    console.log("🧹 数据源工厂已重置");
+    log("🧹 数据源工厂已重置");
   }
 }
 
@@ -341,10 +348,10 @@ export async function initializeDataSourceSystem(): Promise<void> {
   
   // 添加系统切换监听器
   dataSourceManager.addSwitchListener((event) => {
-    console.log(`🔄 数据源切换: ${event.fromSource} → ${event.toSource} (${event.reason})`);
+    log(`🔄 数据源切换: ${event.fromSource} → ${event.toSource} (${event.reason})`);
   });
   
-  console.log("🌟 数据源系统启动完成");
+  log("🌟 数据源系统启动完成");
 }
 
 // 全局工厂实例

@@ -48,7 +48,7 @@ export class TushareDataSource extends AbstractDataSource {
     this.apiToken = config.apiKey || "";
     this.apiUrl = config.apiUrl || "http://api.tushare.pro";
 
-    console.log("🔌 Tushare 数据源已初始化");
+    this.log("🔌 Tushare 数据源已初始化");
   }
 
   getName(): string {
@@ -397,7 +397,7 @@ export class TushareDataSource extends AbstractDataSource {
     const allData: StockDailyData[] = [];
     const errors: string[] = [];
 
-    console.log(`📊 开始批量获取 ${tsCodes.length} 只股票的日线数据`);
+    this.log(`📊 开始批量获取 ${tsCodes.length} 只股票的日线数据`);
 
     // 逐个获取每只股票的数据
     for (let i = 0; i < tsCodes.length; i++) {
@@ -413,7 +413,7 @@ export class TushareDataSource extends AbstractDataSource {
         
         // 进度提示
         if ((i + 1) % 10 === 0) {
-          console.log(`📈 已获取 ${i + 1}/${tsCodes.length} 只股票数据`);
+          this.log(`📈 已获取 ${i + 1}/${tsCodes.length} 只股票数据`);
         }
 
         // API 调用间隔 (遵循 Tushare 限制)
@@ -428,7 +428,7 @@ export class TushareDataSource extends AbstractDataSource {
       }
     }
 
-    console.log(`✅ 批量获取完成，成功: ${allData.length} 条，失败: ${errors.length} 个`);
+    this.log(`✅ 批量获取完成，成功: ${allData.length} 条，失败: ${errors.length} 个`);
 
     return {
       success: errors.length === 0,

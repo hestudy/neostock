@@ -88,7 +88,7 @@ export class NeteaseDataSource extends AbstractDataSource {
   // 获取股票基础信息
   async getStockBasicInfo(): Promise<DataFetchResponse<StockBasicInfo>> {
     return this.retryOperation(async () => {
-      console.log("🌐 网易财经: 开始获取股票基础信息");
+      this.log("🌐 网易财经: 开始获取股票基础信息");
 
       try {
         // 网易财经API需要通过不同的方式获取股票列表
@@ -124,7 +124,7 @@ export class NeteaseDataSource extends AbstractDataSource {
         // 转换为标准格式
         const stocks: StockBasicInfo[] = this.convertNeteaseStockData(data);
 
-        console.log(`✅ 网易财经: 成功获取 ${stocks.length} 只股票基础信息`);
+        this.log(`✅ 网易财经: 成功获取 ${stocks.length} 只股票基础信息`);
 
         return {
           success: true,
@@ -151,7 +151,7 @@ export class NeteaseDataSource extends AbstractDataSource {
   // 获取股票日线数据
   async getStockDailyData(request?: DataFetchRequest): Promise<DataFetchResponse<StockDailyData>> {
     return this.retryOperation(async () => {
-      console.log("📈 网易财经: 开始获取股票日线数据");
+      this.log("📈 网易财经: 开始获取股票日线数据");
 
       const symbol = request?.symbol || "000001.SZ";
       const startDate = request?.startDate || this.getDefaultStartDate();
@@ -162,7 +162,7 @@ export class NeteaseDataSource extends AbstractDataSource {
         const neteaseSymbol = this.convertToNeteaseSymbol(symbol);
         
         const url = `${this.baseUrl}/data/feed/${neteaseSymbol}`;
-        console.log(`🔍 请求网易财经日线数据: ${url}`);
+        this.log(`🔍 请求网易财经日线数据: ${url}`);
 
         const response = await fetch(url, {
           method: 'GET',
@@ -200,7 +200,7 @@ export class NeteaseDataSource extends AbstractDataSource {
           return item.trade_date >= startDate && item.trade_date <= endDate;
         });
 
-        console.log(`✅ 网易财经: 成功获取 ${symbol} 的 ${filteredData.length} 条日线数据`);
+        this.log(`✅ 网易财经: 成功获取 ${symbol} 的 ${filteredData.length} 条日线数据`);
 
         return {
           success: true,

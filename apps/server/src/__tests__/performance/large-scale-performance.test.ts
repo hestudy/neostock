@@ -168,7 +168,7 @@ describe('Large Scale Performance Tests', () => {
         const response = await testClient.stocks.search.query({
           keyword: term,
           limit: 50,
-        });
+        }) as { stocks: Array<{ ts_code: string; name: string; industry: string; [key: string]: unknown }>; total: number };
         
         const endTime = Date.now();
         const responseTime = endTime - startTime;
@@ -189,7 +189,7 @@ describe('Large Scale Performance Tests', () => {
         const response = await testClient.stocks.search.query({
           keyword: code,
           limit: 20,
-        });
+        }) as { stocks: Array<{ ts_code: string; name: string; [key: string]: unknown }>; total: number };
         
         const endTime = Date.now();
         const responseTime = endTime - startTime;
@@ -210,13 +210,13 @@ describe('Large Scale Performance Tests', () => {
         const response = await testClient.stocks.search.query({
           keyword: name,
           limit: 10,
-        });
+        }) as { stocks: Array<{ ts_code: string; name: string; [key: string]: unknown }>; total: number };
         
         const endTime = Date.now();
         const responseTime = endTime - startTime;
         
         expect(responseTime).toBeLessThan(PERFORMANCE_THRESHOLDS.DETAIL_RESPONSE_TIME);
-        expect(response.stocks.some(s => s.name === name)).toBe(true);
+        expect(response.stocks.some((s) => s.name === name)).toBe(true);
       }
     });
 
@@ -229,7 +229,7 @@ describe('Large Scale Performance Tests', () => {
         const response = await testClient.stocks.search.query({
           keyword: term,
           limit: 50,
-        });
+        }) as { stocks: Array<unknown>; total: number };
         
         const endTime = Date.now();
         const responseTime = endTime - startTime;
@@ -257,7 +257,7 @@ describe('Large Scale Performance Tests', () => {
           const response = await testClient.stocks.search.query({
             keyword: term,
             limit: 20,
-          });
+          }) as { stocks: Array<unknown>; total: number };
           
           const endTime = Date.now();
           
@@ -289,7 +289,7 @@ describe('Large Scale Performance Tests', () => {
       const successCount = results.filter(r => r.success).length;
       const avgResponseTime = results
         .filter(r => r.success)
-        .reduce((sum, r) => sum + r.responseTime, 0) / successCount;
+        .reduce((sum: number, r) => sum + r.responseTime, 0) / successCount;
       const maxResponseTime = Math.max(...results.map(r => r.responseTime));
       
       console.log(`成功率: ${(successCount / results.length * 100).toFixed(1)}%`);
@@ -362,7 +362,7 @@ describe('Large Scale Performance Tests', () => {
         const response = await testClient.stocks.list.query({
           cursor: page * pageSize,
           limit: pageSize,
-        });
+        }) as { stocks: Array<unknown>; total: number };
         
         const endTime = Date.now();
         const responseTime = endTime - startTime;
@@ -385,10 +385,11 @@ describe('Large Scale Performance Tests', () => {
       for (const pageIndex of pagesToTest) {
         const startTime = Date.now();
         
-        await testClient.stocks.list.query({
+        const response = await testClient.stocks.list.query({
           cursor: pageIndex * pageSize,
           limit: pageSize,
-        });
+        }) as { stocks: Array<unknown>; total: number };
+        void response; // Use the response to avoid unused variable warning
         
         const endTime = Date.now();
         const responseTime = endTime - startTime;
@@ -411,10 +412,11 @@ describe('Large Scale Performance Tests', () => {
       for (let i = 0; i < 1000; i++) {
         const searchTerm = i % 100 === 0 ? '银行' : `测试${i % 50}`;
         
-        await testClient.stocks.search.query({
+        const response = await testClient.stocks.search.query({
           keyword: searchTerm,
           limit: 20,
-        });
+        }) as { stocks: Array<unknown>; total: number };
+        void response; // Use the response to avoid unused variable warning
         
         // 偶尔检查内存使用情况
         if (i % 200 === 0 && i > 0) {
@@ -446,7 +448,7 @@ describe('Large Scale Performance Tests', () => {
           const response = await testClient.stocks.search.query({
             keyword: `test${i % 10}`,
             limit: 10,
-          });
+          }) as { stocks: Array<unknown>; total: number };
           
           const endTime = Date.now();
           
@@ -504,26 +506,26 @@ describe('Large Scale Performance Tests', () => {
         const response = await testClient.stocks.search.query({
           keyword: test.keyword,
           limit: 50,
-        });
+        }) as { stocks: Array<{ ts_code: string; name: string; industry?: string; symbol: string; [key: string]: unknown }>; total: number };
 
         expect(response.stocks.length).toBeGreaterThanOrEqual(test.minResults);
 
         if (test.expectedIndustry) {
-          const relevantResults = response.stocks.filter(s => 
+          const relevantResults = response.stocks.filter((s) => 
             s.industry?.includes(test.expectedIndustry)
           );
           expect(relevantResults.length).toBeGreaterThan(0);
         }
 
         if (test.expectedName) {
-          const relevantResults = response.stocks.filter(s => 
+          const relevantResults = response.stocks.filter((s) => 
             s.name.includes(test.expectedName)
           );
           expect(relevantResults.length).toBeGreaterThan(0);
         }
 
         if (test.expectedCode) {
-          const relevantResults = response.stocks.filter(s => 
+          const relevantResults = response.stocks.filter((s) => 
             s.ts_code.includes(test.expectedCode) || s.symbol.includes(test.expectedCode)
           );
           expect(relevantResults.length).toBeGreaterThan(0);
@@ -535,13 +537,13 @@ describe('Large Scale Performance Tests', () => {
       const response = await testClient.stocks.search.query({
         keyword: '银行',
         limit: 20,
-      });
+      }) as { stocks: Array<{ name: string; industry?: string; [key: string]: unknown }>; total: number };
 
       expect(response.stocks.length).toBeGreaterThan(5);
 
       // 检查前几个结果是否都与银行相关
       const top5Results = response.stocks.slice(0, 5);
-      const bankRelatedCount = top5Results.filter(s => 
+      const bankRelatedCount = top5Results.filter((s) => 
         s.industry?.includes('银行') || s.name.includes('银行')
       ).length;
 

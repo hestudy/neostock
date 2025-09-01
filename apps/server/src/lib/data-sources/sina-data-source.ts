@@ -39,7 +39,7 @@ export class SinaDataSource extends AbstractDataSource {
     super(config);
     this.apiUrl = config.apiUrl || "https://hq.sinajs.cn";
 
-    console.log("🔌 新浪财经数据源已初始化");
+    this.log("🔌 新浪财经数据源已初始化");
   }
 
   getName(): string {
@@ -275,7 +275,7 @@ export class SinaDataSource extends AbstractDataSource {
       const batchSize = 100; // 新浪财经单次查询限制
       const allData: StockDailyData[] = [];
       
-      console.log(`📊 开始批量获取 ${tsCodes.length} 只股票的实时数据`);
+      this.log(`📊 开始批量获取 ${tsCodes.length} 只股票的实时数据`);
       
       for (let i = 0; i < tsCodes.length; i += batchSize) {
         const batch = tsCodes.slice(i, i + batchSize);
@@ -286,7 +286,7 @@ export class SinaDataSource extends AbstractDataSource {
           
           // 进度提示
           const processed = Math.min(i + batchSize, tsCodes.length);
-          console.log(`📈 已获取 ${processed}/${tsCodes.length} 只股票数据`);
+          this.log(`📈 已获取 ${processed}/${tsCodes.length} 只股票数据`);
           
           // API 调用间隔
           if (i + batchSize < tsCodes.length) {
@@ -298,7 +298,7 @@ export class SinaDataSource extends AbstractDataSource {
         }
       }
       
-      console.log(`✅ 批量获取完成，成功: ${allData.length} 条`);
+      this.log(`✅ 批量获取完成，成功: ${allData.length} 条`);
       
       return {
         success: true,

@@ -28,6 +28,13 @@ export abstract class AbstractDataSource {
     this.config = config;
   }
 
+  // 测试环境日志控制
+  protected log(...args: unknown[]): void {
+    if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
+      this.log(...args);
+    }
+  }
+
   // 抽象方法 - 子类必须实现
   abstract getName(): string;
   abstract performHealthCheck(): Promise<boolean>;
@@ -238,13 +245,13 @@ export abstract class AbstractDataSource {
           const jitter = delay * retryConfig.jitter * Math.random();
           const totalDelay = delay + jitter;
 
-          console.log(`⚠️  ${this.getName()}: ${context} 重试 ${attempt}/${retryConfig.maxRetries}，延迟 ${totalDelay.toFixed(0)}ms`);
+          this.log(`⚠️  ${this.getName()}: ${context} 重试 ${attempt}/${retryConfig.maxRetries}，延迟 ${totalDelay.toFixed(0)}ms`);
           await this.sleep(totalDelay);
         }
 
         const result = await operation();
         if (attempt > 0) {
-          console.log(`✅ ${this.getName()}: ${context} 重试成功 (尝试 ${attempt + 1}/${retryConfig.maxRetries + 1})`);
+          this.log(`✅ ${this.getName()}: ${context} 重试成功 (尝试 ${attempt + 1}/${retryConfig.maxRetries + 1})`);
         }
         return result;
 
@@ -259,16 +266,16 @@ export abstract class AbstractDataSource {
         const errorType = this.classifyError(error as Error);
         
         if (retryConfig.nonRetryableErrors.includes(errorType)) {
-          console.log(`❌ ${this.getName()}: ${context} 遇到不可重试错误: ${errorType}`);
+          this.log(`❌ ${this.getName()}: ${context} 遇到不可重试错误: ${errorType}`);
           break; // 不可重试的错误
         }
 
         if (!retryConfig.retryableErrors.includes(errorType)) {
-          console.log(`❌ ${this.getName()}: ${context} 遇到未分类错误: ${errorType}，不进行重试`);
+          this.log(`❌ ${this.getName()}: ${context} 遇到未分类错误: ${errorType}，不进行重试`);
           break; // 未分类的错误也不重试
         }
 
-        console.log(`⚠️  ${this.getName()}: ${context} 遇到可重试错误: ${errorType}`);
+        this.log(`⚠️  ${this.getName()}: ${context} 遇到可重试错误: ${errorType}`);
       }
     }
 

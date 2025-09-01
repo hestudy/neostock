@@ -35,6 +35,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 	private readonly MAX_RETRY_ATTEMPTS: number;
 	private readonly BACKUP_DIR = process.env.BACKUP_DIR || './backups';
 	private failureCount = 0;
+	private readonly isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 	
 	protected get database(): DatabaseInstance {
 		return (this as unknown as { db: DatabaseInstance }).db;
@@ -45,6 +46,13 @@ export class EnhancedMigrator extends DatabaseMigrator {
 	// 仅用于测试的数据库访问方法
 	public getDbForTesting(): DatabaseInstance {
 		return this.database;
+	}
+
+	// 日志控制方法
+	private log(...args: unknown[]): void {
+		if (!this.isTestEnvironment) {
+			this.log(...args);
+		}
 	}
 
 	constructor(
@@ -178,14 +186,14 @@ export class EnhancedMigrator extends DatabaseMigrator {
 				}
 
 				// 如果有问题且不是最后一次尝试，继续重试
-				console.log(`⚠️  数据完整性验证失败 (尝试 ${attempt}/${retries}): ${issues.join(', ')}`);
+				this.log(`⚠️  数据完整性验证失败 (尝试 ${attempt}/${retries}): ${issues.join(', ')}`);
 
 			} catch (error) {
 				if (attempt === retries) {
 					issues.push(`数据完整性验证失败: ${error instanceof Error ? error.message : String(error)}`);
 					return { valid: false, issues };
 				}
-				console.log(`⚠️  数据完整性验证异常 (尝试 ${attempt}/${retries}): ${error instanceof Error ? error.message : String(error)}`);
+				this.log(`⚠️  数据完整性验证异常 (尝试 ${attempt}/${retries}): ${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
 
@@ -219,10 +227,10 @@ export class EnhancedMigrator extends DatabaseMigrator {
 					VALUES (?, ?, ?)
 				`).run(migrationId, backupPath, stats.size);
 
-				console.log(`💾 数据库备份已创建: ${backupPath}`);
+				this.log(`💾 数据库备份已创建: ${backupPath}`);
 				return backupInfo;
 			} else {
-				console.log('📝 内存数据库无需备份');
+				this.log('📝 内存数据库无需备份');
 				return null;
 			}
 		} catch (error) {
@@ -246,7 +254,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 				const DatabaseClass = this.constructor as new (path: string) => { db: DatabaseInstance };
 				(this as unknown as { db: DatabaseInstance }).db = new DatabaseClass(dbPath).db;
 				
-				console.log(`🔄 数据库已从备份恢复: ${backupPath}`);
+				this.log(`🔄 数据库已从备份恢复: ${backupPath}`);
 				return true;
 			}
 			return false;
@@ -272,13 +280,13 @@ export class EnhancedMigrator extends DatabaseMigrator {
 
 		try {
 			// 1. 预迁移数据完整性验证
-			console.log('🔍 执行预迁移数据完整性验证...');
+			this.log('🔍 执行预迁移数据完整性验证...');
 			const preValidation = await this.validateDataIntegrity();
 			if (!preValidation.valid) {
 				result.errors.push(`预迁移验证失败: ${preValidation.issues.join(', ')}`);
 				return { ...result, success: false };
 			}
-			console.log('✅ 预迁移验证通过');
+			this.log('✅ 预迁移验证通过');
 
 			// 2. 获取待执行的迁移
 			const pendingMigrations = [];
@@ -299,11 +307,11 @@ export class EnhancedMigrator extends DatabaseMigrator {
 			}
 
 			if (pendingMigrations.length === 0) {
-				console.log('📋 没有待执行的迁移');
+				this.log('📋 没有待执行的迁移');
 				return result;
 			}
 
-			console.log(`🚀 开始执行 ${pendingMigrations.length} 个迁移`);
+			this.log(`🚀 开始执行 ${pendingMigrations.length} 个迁移`);
 
 			// 3. 逐个执行迁移
 			for (const migration of pendingMigrations) {
@@ -319,7 +327,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 					attemptCount++;
 					
 					try {
-						console.log(`📦 执行迁移 ${migration.name} (尝试 ${attemptCount}/${this.MAX_RETRY_ATTEMPTS})`);
+						this.log(`📦 执行迁移 ${migration.name} (尝试 ${attemptCount}/${this.MAX_RETRY_ATTEMPTS})`);
 
 						// 创建备份（仅第一次尝试）
 						if (attemptCount === 1) {
@@ -347,7 +355,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 						migrationSuccess = true;
 						result.applied.push(migration.id);
 						this.logMigrationSuccess(migration.id);
-						console.log(`✅ 迁移 ${migration.name} 执行成功`);
+						this.log(`✅ 迁移 ${migration.name} 执行成功`);
 
 					} catch (error) {
 						lastError = error instanceof Error ? error : new Error(String(error));
@@ -358,7 +366,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 						// 如果还有重试机会，等待一段时间后重试
 						if (attemptCount < this.MAX_RETRY_ATTEMPTS) {
 							const waitTime = Math.pow(2, attemptCount) * 1000; // 指数退避
-							console.log(`⏱️  等待 ${waitTime}ms 后重试...`);
+							this.log(`⏱️  等待 ${waitTime}ms 后重试...`);
 							await new Promise(resolve => setTimeout(resolve, waitTime));
 						}
 					}
@@ -370,7 +378,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 					
 					// 如果有备份，尝试恢复
 					if (backupInfo && await this.restoreFromBackup(backupInfo.path)) {
-						console.log(`🔄 已从备份恢复数据库`);
+						this.log(`🔄 已从备份恢复数据库`);
 					}
 
 					result.success = false;
@@ -393,7 +401,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 					result.success = false;
 					result.errors.push(`最终验证失败: ${finalValidation.issues.join(', ')}`);
 				} else {
-					console.log('🎉 所有迁移执行成功，数据完整性验证通过');
+					this.log('🎉 所有迁移执行成功，数据完整性验证通过');
 				}
 			}
 
@@ -428,7 +436,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 			try {
 				// 检查事务状态，如果有活跃事务则回滚
 				db.exec('ROLLBACK');
-				console.log('🔄 迁移失败，事务已回滚');
+				this.log('🔄 迁移失败，事务已回滚');
 			} catch (rollbackError) {
 				// 忽略"no transaction is active"错误，因为事务可能已经自动回滚
 				if (rollbackError instanceof Error && !rollbackError.message?.includes('no transaction is active')) {
@@ -441,17 +449,17 @@ export class EnhancedMigrator extends DatabaseMigrator {
 
 	// 自动回滚机制
 	private async triggerAutoRollback(appliedMigrations: string[]): Promise<void> {
-		console.log('🔄 开始自动回滚流程...');
+		this.log('🔄 开始自动回滚流程...');
 		
 		// 按逆序回滚已应用的迁移
 		for (const migrationId of appliedMigrations.reverse()) {
 			try {
-				console.log(`↩️  回滚迁移: ${migrationId}`);
+				this.log(`↩️  回滚迁移: ${migrationId}`);
 				const rollbackResult = await this.rollbackMigration(migrationId);
 				
 				if (rollbackResult.success) {
 					this.logMigrationRollback(migrationId);
-					console.log(`✅ 迁移 ${migrationId} 回滚成功`);
+					this.log(`✅ 迁移 ${migrationId} 回滚成功`);
 				} else {
 					console.error(`❌ 迁移 ${migrationId} 回滚失败: ${rollbackResult.error}`);
 					break;
@@ -526,7 +534,7 @@ export class EnhancedMigrator extends DatabaseMigrator {
 					// Type guard to ensure backup has required properties
 					const backupPath = (backup as Record<string, unknown>).backup_path as string;
 					await fs.unlink(backupPath);
-					console.log(`🗑️  已删除旧备份: ${backupPath}`);
+					this.log(`🗑️  已删除旧备份: ${backupPath}`);
 				} catch (error) {
 					const backupPath = (backup as Record<string, unknown>).backup_path as string;
 					console.warn(`⚠️  删除备份文件失败: ${backupPath}`, error);

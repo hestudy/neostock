@@ -1,12 +1,19 @@
 import type { Migration } from './migrator';
 import type { DatabaseWrapper } from './migrator';
 
+// 测试环境日志控制
+const log = (...args: unknown[]) => {
+	if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
+		log(...args);
+	}
+};
+
 export const migration_002_v1_1_create_stocks_tables: Migration = {
 	id: '002_v1.1_create_stocks_tables',
 	name: '创建股票相关数据表',
 	
 	async up(db: DatabaseWrapper): Promise<void> {
-		console.log('🔄 开始创建股票相关数据表...');
+		log('🔄 开始创建股票相关数据表...');
 		
 		// 启用外键约束
 		await db.run('PRAGMA foreign_keys = ON');
@@ -74,11 +81,11 @@ export const migration_002_v1_1_create_stocks_tables: Migration = {
 		await db.run('CREATE INDEX IF NOT EXISTS user_stock_favorites_user_id_idx ON user_stock_favorites (user_id)');
 		await db.run('CREATE INDEX IF NOT EXISTS user_stock_favorites_ts_code_idx ON user_stock_favorites (ts_code)');
 		
-		console.log('✅ 股票相关数据表创建完成');
+		log('✅ 股票相关数据表创建完成');
 	},
 	
 	async down(db: DatabaseWrapper): Promise<void> {
-		console.log('🔄 开始回滚股票相关数据表...');
+		log('🔄 开始回滚股票相关数据表...');
 		
 		// 按照依赖关系逆序删除表
 		// 1. 删除用户收藏表（依赖其他表）
@@ -102,6 +109,6 @@ export const migration_002_v1_1_create_stocks_tables: Migration = {
 		await db.run('DROP INDEX IF EXISTS stocks_industry_market_idx');
 		await db.run('DROP TABLE IF EXISTS stocks');
 		
-		console.log('✅ 股票相关数据表回滚完成');
+		log('✅ 股票相关数据表回滚完成');
 	}
 };
