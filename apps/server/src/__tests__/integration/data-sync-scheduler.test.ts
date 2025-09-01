@@ -13,7 +13,7 @@ describe('DataSyncScheduler Integration Tests', () => {
   let scheduler: DataSyncScheduler;
   let mockDataSourceManager: MockDataSourceManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockDataSourceManager = new MockDataSourceManager();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     scheduler = new DataSyncScheduler(mockDataSourceManager as any, {
@@ -22,10 +22,12 @@ describe('DataSyncScheduler Integration Tests', () => {
       retryAttempts: 3,
       enabled: true
     });
+    // 确保调度器处于停止状态
+    await scheduler.stop();
   });
 
-  afterEach(() => {
-    scheduler.stop();
+  afterEach(async () => {
+    await scheduler.stop();
     vi.clearAllMocks();
   });
 
@@ -38,11 +40,11 @@ describe('DataSyncScheduler Integration Tests', () => {
       expect(scheduler.isSchedulerRunning()).toBe(true);
     });
 
-    it('应该能够停止调度器', () => {
+    it('应该能够停止调度器', async () => {
       scheduler.start();
       expect(scheduler.isSchedulerRunning()).toBe(true);
       
-      scheduler.stop();
+      await scheduler.stop();
       
       expect(scheduler.isSchedulerRunning()).toBe(false);
     });

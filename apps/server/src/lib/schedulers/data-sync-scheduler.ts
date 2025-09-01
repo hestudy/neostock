@@ -45,11 +45,13 @@ export class DataSyncScheduler {
     }, 5 * 60 * 1000); // 每5分钟检查一次
   }
 
-  public stop(): void {
+  public async stop(): Promise<void> {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
+    // 无论如何都等待一下，确保所有异步操作完成
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
 
   public async executeDailySync(): Promise<SyncResult> {

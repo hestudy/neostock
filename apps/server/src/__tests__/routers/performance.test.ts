@@ -8,7 +8,8 @@ describe('Performance Router', () => {
     // Create a mock context
     const mockContext = {
       session: null,
-      user: null
+      user: null,
+      clientIP: '127.0.0.1'
     };
     
     caller = appRouter.createCaller(mockContext);

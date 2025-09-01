@@ -57,215 +57,6 @@
         }
       }
     },
-    "/health/database": {
-      "get": {
-        "operationId": "databaseHealth",
-        "summary": "Database health check endpoint",
-        "description": "Returns detailed database health status including connectivity, performance, and configuration",
-        "tags": [
-          "Health",
-          "Database"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "pass",
-                        "warn",
-                        "fail"
-                      ]
-                    },
-                    "responseTime": {
-                      "type": "number"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "timestamp": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "properties": {
-                        "connectivity": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "pass",
-                                "fail"
-                              ]
-                            },
-                            "responseTime": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "responseTime"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "pragmaConfig": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "pass",
-                                "warn",
-                                "fail"
-                              ]
-                            },
-                            "settings": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  }
-                                ]
-                              }
-                            },
-                            "issues": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "settings",
-                            "issues"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "connectionPool": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "pass",
-                                "warn",
-                                "fail"
-                              ]
-                            },
-                            "active": {
-                              "type": "number"
-                            },
-                            "max": {
-                              "type": "number"
-                            },
-                            "utilization": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "active",
-                            "max",
-                            "utilization"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "performance": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "pass",
-                                "warn",
-                                "fail"
-                              ]
-                            },
-                            "averageQueryTime": {
-                              "type": "number"
-                            },
-                            "slowQueries": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "averageQueryTime",
-                            "slowQueries"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "diskSpace": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "pass",
-                                "warn",
-                                "fail"
-                              ]
-                            },
-                            "info": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "info"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "connectivity",
-                        "pragmaConfig",
-                        "connectionPool",
-                        "performance",
-                        "diskSpace"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "responseTime",
-                    "message",
-                    "timestamp",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/private-data": {
       "get": {
         "operationId": "privateData",
@@ -2110,6 +1901,289 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health-check",
+        "summary": "Health check endpoint",
+        "description": "Check the health status of the server and its dependencies",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "uptime": {
+                      "type": "number"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "components": {
+                      "type": "object",
+                      "properties": {
+                        "database": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "healthy",
+                                "degraded",
+                                "unhealthy"
+                              ]
+                            },
+                            "responseTime": {
+                              "type": "number"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "lastChecked": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "lastChecked"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "memory": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "healthy",
+                                "degraded",
+                                "unhealthy"
+                              ]
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "lastChecked": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "lastChecked"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "database",
+                        "memory"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "timestamp",
+                    "uptime",
+                    "version",
+                    "components"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/database": {
+      "get": {
+        "operationId": "health-database",
+        "summary": "Database health check",
+        "description": "Check only the database connection health",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    "responseTime": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "timestamp"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/alive": {
+      "get": {
+        "operationId": "health-alive",
+        "summary": "Liveness probe",
+        "description": "Simple liveness check that returns immediately",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "alive": {
+                      "type": "boolean"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "uptime": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "alive",
+                    "timestamp",
+                    "uptime"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "health-ready",
+        "summary": "Readiness probe",
+        "description": "Check if the service is ready to accept traffic",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ready": {
+                      "type": "boolean"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "database": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "database"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "ready",
+                    "timestamp",
+                    "checks"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }

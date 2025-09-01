@@ -1,8 +1,10 @@
-import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
+import { protectedProcedure, publicProcedure, router, searchRateLimitedProcedure, favoriteRateLimitedProcedure } from "../lib/trpc";
 import { z } from "zod";
+import { TRPCError } from '@trpc/server';
 import { db } from "../db";
 import { stocks, stock_daily, user_stock_favorites } from "../db/schema/stocks";
 import { eq, and, like, or, desc, asc, sql } from "drizzle-orm";
+import { withDatabaseRetry } from "../lib/database-retry";
 
 // 股票基础信息 schema
 const StockBasicInfoSchema = z.object({
@@ -42,7 +44,7 @@ const UserStockFavoriteSchema = z.object({
 
 export const stocksRouter = router({
   // 搜索股票 - 支持股票代码、名称模糊搜索
-  search: publicProcedure
+  search: searchRateLimitedProcedure
     .meta({
       openapi: {
         method: 'GET',
@@ -64,31 +66,33 @@ export const stocksRouter = router({
     .query(async ({ input }) => {
       const { keyword, limit } = input;
       
-      // 构建搜索条件：支持股票代码和名称模糊搜索
-      const searchConditions = or(
-        like(stocks.ts_code, `%${keyword}%`),
-        like(stocks.symbol, `%${keyword}%`),
-        like(stocks.name, `%${keyword}%`)
-      );
-      
-      // 执行搜索查询，按股票代码排序
-      const searchResults = await db
-        .select()
-        .from(stocks)
-        .where(searchConditions)
-        .orderBy(asc(stocks.ts_code))
-        .limit(limit);
-      
-      // 获取总数量
-      const [{ count }] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(stocks)  
-        .where(searchConditions);
-      
-      return {
-        stocks: searchResults,
-        total: count,
-      };
+      return await withDatabaseRetry(async () => {
+        // 构建搜索条件：支持股票代码和名称模糊搜索
+        const searchConditions = or(
+          like(stocks.ts_code, `%${keyword}%`),
+          like(stocks.symbol, `%${keyword}%`),
+          like(stocks.name, `%${keyword}%`)
+        );
+        
+        // 执行搜索查询，按股票代码排序
+        const searchResults = await db
+          .select()
+          .from(stocks)
+          .where(searchConditions)
+          .orderBy(asc(stocks.ts_code))
+          .limit(limit);
+        
+        // 获取总数量
+        const [{ count }] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(stocks)  
+          .where(searchConditions);
+        
+        return {
+          stocks: searchResults,
+          total: count,
+        };
+      });
     }),
 
   // 获取股票列表 - 支持分页
@@ -175,29 +179,31 @@ export const stocksRouter = router({
     .query(async ({ input }) => {
       const { ts_code } = input;
       
-      // 获取股票基础信息
-      const [stockInfo] = await db
-        .select()
-        .from(stocks)
-        .where(eq(stocks.ts_code, ts_code))
-        .limit(1);
-      
-      if (!stockInfo) {
-        return { stock: null, latestPrice: null };
-      }
-      
-      // 获取最新价格数据
-      const [latestPrice] = await db
-        .select()
-        .from(stock_daily)
-        .where(eq(stock_daily.ts_code, ts_code))
-        .orderBy(desc(stock_daily.trade_date))
-        .limit(1);
-      
-      return {
-        stock: stockInfo,
-        latestPrice: latestPrice || null,
-      };
+      return await withDatabaseRetry(async () => {
+        // 获取股票基础信息
+        const [stockInfo] = await db
+          .select()
+          .from(stocks)
+          .where(eq(stocks.ts_code, ts_code))
+          .limit(1);
+        
+        if (!stockInfo) {
+          return { stock: null, latestPrice: null };
+        }
+        
+        // 获取最新价格数据
+        const [latestPrice] = await db
+          .select()
+          .from(stock_daily)
+          .where(eq(stock_daily.ts_code, ts_code))
+          .orderBy(desc(stock_daily.trade_date))
+          .limit(1);
+        
+        return {
+          stock: stockInfo,
+          latestPrice: latestPrice || null,
+        };
+      });
     }),
 
   // 获取股票历史数据
@@ -289,7 +295,7 @@ export const stocksRouter = router({
       })),
     }))
     .query(async ({ ctx }) => {
-      const userId = ctx.session.user.id;
+      const userId = ctx.session?.user.id;
       
       // 联表查询用户收藏的股票及其基础信息
       const favoriteStocks = await db
@@ -326,7 +332,7 @@ export const stocksRouter = router({
     }),
 
   // 添加股票到收藏
-  addToFavorites: protectedProcedure
+  addToFavorites: favoriteRateLimitedProcedure
     .meta({
       openapi: {
         method: 'POST',
@@ -346,7 +352,14 @@ export const stocksRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { ts_code } = input;
-      const userId = ctx.session.user.id;
+      const userId = ctx.session?.user.id;
+      
+      if (!userId) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        });
+      }
       
       try {
         // 检查股票是否存在
@@ -403,7 +416,7 @@ export const stocksRouter = router({
     }),
 
   // 从收藏中移除股票
-  removeFromFavorites: protectedProcedure
+  removeFromFavorites: favoriteRateLimitedProcedure
     .meta({
       openapi: {
         method: 'DELETE',
@@ -423,7 +436,14 @@ export const stocksRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { ts_code } = input;
-      const userId = ctx.session.user.id;
+      const userId = ctx.session?.user.id;
+      
+      if (!userId) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated',
+        });
+      }
       
       try {
         // 删除收藏记录
@@ -469,7 +489,7 @@ export const stocksRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const { ts_code } = input;
-      const userId = ctx.session.user.id;
+      const userId = ctx.session?.user.id;
       
       const [favorite] = await db
         .select()

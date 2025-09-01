@@ -1,9 +1,9 @@
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 import { z } from "zod";
 import { performanceRouter } from "./performance";
-import { databaseHealthChecker } from "../lib/database-health";
 import { dataSourcesRouter } from "./data-sources";
 import { stocksRouter } from "./stocks";
+import { healthRouter } from "./health";
 
 export const appRouter = router({
 	healthCheck: publicProcedure
@@ -23,58 +23,7 @@ export const appRouter = router({
 			return "OK";
 		}),
 	
-	// 详细的数据库健康检查端点
-	databaseHealth: publicProcedure
-		.meta({ 
-			openapi: { 
-				method: 'GET', 
-				path: '/health/database',
-				summary: 'Database health check endpoint',
-				description: 'Returns detailed database health status including connectivity, performance, and configuration',
-				tags: ['Health', 'Database'],
-				protect: false
-			} 
-		})
-		.input(z.void())
-		.output(z.object({
-			status: z.enum(['pass', 'warn', 'fail']),
-			responseTime: z.number(),
-			message: z.string(),
-			timestamp: z.string(),
-			details: z.object({
-				connectivity: z.object({
-					status: z.enum(['pass', 'fail']),
-					responseTime: z.number()
-				}),
-				pragmaConfig: z.object({
-					status: z.enum(['pass', 'warn', 'fail']),
-					settings: z.record(z.string(), z.union([z.string(), z.number()])),
-					issues: z.array(z.string())
-				}),
-				connectionPool: z.object({
-					status: z.enum(['pass', 'warn', 'fail']),
-					active: z.number(),
-					max: z.number(),
-					utilization: z.number()
-				}),
-				performance: z.object({
-					status: z.enum(['pass', 'warn', 'fail']),
-					averageQueryTime: z.number(),
-					slowQueries: z.number()
-				}),
-				diskSpace: z.object({
-					status: z.enum(['pass', 'warn', 'fail']),
-					info: z.string()
-				})
-			})
-		}))
-		.query(async () => {
-			const healthResult = await databaseHealthChecker.performHealthCheck();
-			return {
-				...healthResult,
-				timestamp: new Date().toISOString()
-			};
-		}),
+	// 详细的数据库健康检查端点（已移至 health 路由器中，避免重复定义）
 	privateData: protectedProcedure
 		.meta({ 
 			openapi: { 
@@ -107,5 +56,7 @@ export const appRouter = router({
 	dataSources: dataSourcesRouter,
 	// Stock data management routes
 	stocks: stocksRouter,
+	// Enhanced health check routes
+	health: healthRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -9,7 +9,7 @@ describe("API Router", () => {
 
   it("should create caller without errors", () => {
     const createCaller = createCallerFactory(appRouter);
-    const caller = createCaller({ session: null });
+    const caller = createCaller({ session: null, clientIP: '127.0.0.1' });
     expect(caller).toBeDefined();
   });
 });
