@@ -63,5 +63,8 @@ export const searchRateLimitedProcedure = publicProcedure.use(rateLimitMiddlewar
 // 收藏操作专用的速率限制（每分钟30次）
 export const favoriteRateLimitedProcedure = protectedProcedure.use(rateLimitMiddleware(60 * 1000, 30));
 
+// 列表查询速率限制（每分钟60次）
+export const listRateLimitedProcedure = publicProcedure.use(rateLimitMiddleware(60 * 1000, 60));
+
 export const createCallerFactory = t.createCallerFactory;
 export type { Context };

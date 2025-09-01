@@ -1,4 +1,4 @@
-import { protectedProcedure, publicProcedure, router, searchRateLimitedProcedure, favoriteRateLimitedProcedure } from "../lib/trpc";
+import { protectedProcedure, publicProcedure, router, searchRateLimitedProcedure, favoriteRateLimitedProcedure, listRateLimitedProcedure } from "../lib/trpc";
 import { z } from "zod";
 import { TRPCError } from '@trpc/server';
 import { db } from "../db";
@@ -96,7 +96,7 @@ export const stocksRouter = router({
     }),
 
   // 获取股票列表 - 支持分页
-  list: publicProcedure
+  list: listRateLimitedProcedure
     .meta({
       openapi: {
         method: 'GET', 
@@ -120,41 +120,43 @@ export const stocksRouter = router({
     .query(async ({ input }) => {
       const { cursor = 0, limit, industry } = input;
       
-      // 构建查询条件
-      let whereCondition = undefined;
-      if (industry) {
-        whereCondition = eq(stocks.industry, industry);
-      }
-      
-      // 执行分页查询
-      const stocksList = await db
-        .select()
-        .from(stocks)
-        .where(whereCondition)
-        .orderBy(asc(stocks.ts_code))
-        .offset(cursor)
-        .limit(limit + 1); // 多查询一条判断是否有下一页
-      
-      // 计算下一页cursor
-      const hasNextPage = stocksList.length > limit;
-      const nextCursor = hasNextPage ? cursor + limit : null;
-      
-      // 移除多查询的一条记录
-      if (hasNextPage) {
-        stocksList.pop();
-      }
-      
-      // 获取总数量
-      const [{ count }] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(stocks)
-        .where(whereCondition);
-      
-      return {
-        stocks: stocksList,
-        nextCursor,
-        total: count,
-      };
+      return await withDatabaseRetry(async () => {
+        // 构建查询条件
+        let whereCondition = undefined as unknown as ReturnType<typeof and> | undefined;
+        if (industry) {
+          whereCondition = eq(stocks.industry, industry);
+        }
+        
+        // 执行分页查询
+        const stocksList = await db
+          .select()
+          .from(stocks)
+          .where(whereCondition)
+          .orderBy(asc(stocks.ts_code))
+          .offset(cursor)
+          .limit(limit + 1); // 多查询一条判断是否有下一页
+        
+        // 计算下一页cursor
+        const hasNextPage = stocksList.length > limit;
+        const nextCursor = hasNextPage ? cursor + limit : null;
+        
+        // 移除多查询的一条记录
+        if (hasNextPage) {
+          stocksList.pop();
+        }
+        
+        // 获取总数量
+        const [{ count }] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(stocks)
+          .where(whereCondition);
+        
+        return {
+          stocks: stocksList,
+          nextCursor,
+          total: count,
+        };
+      });
     }),
 
   // 获取股票详情
@@ -231,45 +233,47 @@ export const stocksRouter = router({
     .query(async ({ input }) => {
       const { ts_code, start_date, end_date, limit } = input;
       
-      // 构建日期范围查询条件
-      let conditions = eq(stock_daily.ts_code, ts_code);
-      
-      if (start_date && end_date) {
-        conditions = and(
-          conditions,
-          sql`${stock_daily.trade_date} >= ${start_date}`,
-          sql`${stock_daily.trade_date} <= ${end_date}`
-        )!;
-      } else if (start_date) {
-        conditions = and(
-          conditions,
-          sql`${stock_daily.trade_date} >= ${start_date}`
-        )!;
-      } else if (end_date) {
-        conditions = and(
-          conditions,
-          sql`${stock_daily.trade_date} <= ${end_date}`
-        )!;
-      }
-      
-      // 获取历史数据，按日期降序排列（最新的在前）
-      const dailyData = await db
-        .select()
-        .from(stock_daily)
-        .where(conditions)
-        .orderBy(desc(stock_daily.trade_date))
-        .limit(limit);
-      
-      // 获取总数量
-      const [{ count }] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(stock_daily)
-        .where(conditions);
-      
-      return {
-        data: dailyData,
-        total: count,
-      };
+      return await withDatabaseRetry(async () => {
+        // 构建日期范围查询条件
+        let conditions = eq(stock_daily.ts_code, ts_code);
+        
+        if (start_date && end_date) {
+          conditions = and(
+            conditions,
+            sql`${stock_daily.trade_date} >= ${start_date}`,
+            sql`${stock_daily.trade_date} <= ${end_date}`
+          )!;
+        } else if (start_date) {
+          conditions = and(
+            conditions,
+            sql`${stock_daily.trade_date} >= ${start_date}`
+          )!;
+        } else if (end_date) {
+          conditions = and(
+            conditions,
+            sql`${stock_daily.trade_date} <= ${end_date}`
+          )!;
+        }
+        
+        // 获取历史数据，按日期降序排列（最新的在前）
+        const dailyData = await db
+          .select()
+          .from(stock_daily)
+          .where(conditions)
+          .orderBy(desc(stock_daily.trade_date))
+          .limit(limit);
+        
+        // 获取总数量
+        const [{ count }] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(stock_daily)
+          .where(conditions);
+        
+        return {
+          data: dailyData,
+          total: count,
+        };
+      });
     }),
 
   // 用户收藏相关功能 - 需要认证
@@ -297,38 +301,40 @@ export const stocksRouter = router({
     .query(async ({ ctx }) => {
       const userId = ctx.session?.user.id;
       
-      // 联表查询用户收藏的股票及其基础信息
-      const favoriteStocks = await db
-        .select({
-          favorite_info: user_stock_favorites,
-          stock: stocks,
-        })
-        .from(user_stock_favorites)
-        .innerJoin(stocks, eq(user_stock_favorites.ts_code, stocks.ts_code))
-        .where(eq(user_stock_favorites.user_id, userId))
-        .orderBy(desc(user_stock_favorites.created_at));
-      
-      // 为每只收藏股票获取最新价格
-      const enrichedFavorites = await Promise.all(
-        favoriteStocks.map(async ({ favorite_info, stock }) => {
-          const [latestPrice] = await db
-            .select()
-            .from(stock_daily)
-            .where(eq(stock_daily.ts_code, stock.ts_code))
-            .orderBy(desc(stock_daily.trade_date))
-            .limit(1);
-          
-          return {
-            favorite_info,
-            stock,
-            latest_price: latestPrice,
-          };
-        })
-      );
-      
-      return {
-        favorites: enrichedFavorites,
-      };
+      return await withDatabaseRetry(async () => {
+        // 联表查询用户收藏的股票及其基础信息
+        const favoriteStocks = await db
+          .select({
+            favorite_info: user_stock_favorites,
+            stock: stocks,
+          })
+          .from(user_stock_favorites)
+          .innerJoin(stocks, eq(user_stock_favorites.ts_code, stocks.ts_code))
+          .where(eq(user_stock_favorites.user_id, userId))
+          .orderBy(desc(user_stock_favorites.created_at));
+        
+        // 为每只收藏股票获取最新价格
+        const enrichedFavorites = await Promise.all(
+          favoriteStocks.map(async ({ favorite_info, stock }) => {
+            const [latestPrice] = await db
+              .select()
+              .from(stock_daily)
+              .where(eq(stock_daily.ts_code, stock.ts_code))
+              .orderBy(desc(stock_daily.trade_date))
+              .limit(1);
+            
+            return {
+              favorite_info,
+              stock,
+              latest_price: latestPrice,
+            };
+          })
+        );
+        
+        return {
+          favorites: enrichedFavorites,
+        };
+      });
     }),
 
   // 添加股票到收藏
@@ -363,11 +369,14 @@ export const stocksRouter = router({
       
       try {
         // 检查股票是否存在
-        const [stockExists] = await db
-          .select()
-          .from(stocks)
-          .where(eq(stocks.ts_code, ts_code))
-          .limit(1);
+        const [stockExists] = await withDatabaseRetry(async () => {
+          const rows = await db
+            .select()
+            .from(stocks)
+            .where(eq(stocks.ts_code, ts_code))
+            .limit(1);
+          return rows;
+        });
         
         if (!stockExists) {
           return {
@@ -377,16 +386,19 @@ export const stocksRouter = router({
         }
         
         // 检查是否已经收藏
-        const [existingFavorite] = await db
-          .select()
-          .from(user_stock_favorites)
-          .where(
-            and(
-              eq(user_stock_favorites.user_id, userId),
-              eq(user_stock_favorites.ts_code, ts_code)
+        const [existingFavorite] = await withDatabaseRetry(async () => {
+          const rows = await db
+            .select()
+            .from(user_stock_favorites)
+            .where(
+              and(
+                eq(user_stock_favorites.user_id, userId),
+                eq(user_stock_favorites.ts_code, ts_code)
+              )
             )
-          )
-          .limit(1);
+            .limit(1);
+          return rows;
+        });
         
         if (existingFavorite) {
           return {
@@ -396,10 +408,12 @@ export const stocksRouter = router({
         }
         
         // 添加到收藏
-        await db.insert(user_stock_favorites).values({
-          user_id: userId,
-          ts_code,
-          created_at: new Date(),
+        await withDatabaseRetry(async () => {
+          await db.insert(user_stock_favorites).values({
+            user_id: userId,
+            ts_code,
+            created_at: new Date(),
+          });
         });
         
         return {
@@ -447,14 +461,16 @@ export const stocksRouter = router({
       
       try {
         // 删除收藏记录
-        await db
-          .delete(user_stock_favorites)
-          .where(
-            and(
-              eq(user_stock_favorites.user_id, userId),
-              eq(user_stock_favorites.ts_code, ts_code)
-            )
-          );
+        await withDatabaseRetry(async () => {
+          await db
+            .delete(user_stock_favorites)
+            .where(
+              and(
+                eq(user_stock_favorites.user_id, userId),
+                eq(user_stock_favorites.ts_code, ts_code)
+              )
+            );
+        });
         
         return {
           success: true,
@@ -491,16 +507,19 @@ export const stocksRouter = router({
       const { ts_code } = input;
       const userId = ctx.session?.user.id;
       
-      const [favorite] = await db
-        .select()
-        .from(user_stock_favorites)
-        .where(
-          and(
-            eq(user_stock_favorites.user_id, userId),
-            eq(user_stock_favorites.ts_code, ts_code)
+      const [favorite] = await withDatabaseRetry(async () => {
+        const rows = await db
+          .select()
+          .from(user_stock_favorites)
+          .where(
+            and(
+              eq(user_stock_favorites.user_id, userId),
+              eq(user_stock_favorites.ts_code, ts_code)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
+        return rows;
+      });
       
       return {
         is_favorite: !!favorite,

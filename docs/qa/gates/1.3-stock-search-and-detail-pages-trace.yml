@@ -1,19 +1,55 @@
 trace:
   totals:
     requirements: 5
-    full: 0
-    partial: 3
-    none: 2
-  planning_ref: 'docs/qa/assessments/1.3-trace-20250829.md'
-  uncovered:
-    - ac: 'AC3'
-      reason: '详情页面路由和实时更新测试完全缺失'
-    - ac: 'AC5' 
-      reason: '路由集成、预加载、懒加载测试完全缺失'
-    - ac: 'AC1_gaps'
-      reason: '搜索历史、实时过滤前端集成测试缺失'
-    - ac: 'AC2_gaps'
-      reason: '4000股票数据量性能测试、缓存机制测试缺失'
+    full: 1
+    partial: 4
+    none: 0
+  planning_ref: 'docs/qa/assessments/1.3-test-design-20250829.md'
+  uncovered: []
+  notes: 'See docs/qa/assessments/1.3-trace-20250901.md'
+nfr_validation:
+  _assessed: [security, performance, reliability, maintainability]
+  security:
+    status: CONCERNS
+    notes: '缺少搜索接口速率限制'
+  performance:
+    status: PASS
+    notes: '满足 <100ms 响应时间要求，有充分验证'
+  reliability:
+    status: CONCERNS
+    notes: '缺少重试机制和健康检查'
+  maintainability:
+    status: PASS
+    notes: '测试覆盖充分，代码结构良好'
+test_design:
+  scenarios_total: 23
+  by_level:
+    unit: 8
+    integration: 9
+    e2e: 6
+  by_priority:
+    p0: 6
+    p1: 9
+    p2: 6
+    p3: 2
+  coverage_gaps: []
+risk_summary:
+  totals:
+    critical: 2
+    high: 3
+    medium: 4
+    low: 5
+  highest:
+    id: PERF-001
+    score: 9
+    title: '4000只股票实时搜索性能瓶颈'
+  recommendations:
+    must_fix:
+      - '实现搜索索引优化与缓存（必要）'
+      - '构建路由集成测试并验证预加载/懒加载'
+    monitor:
+      - '监控搜索响应时间与错误率'
+      - '跟踪路由跳转失败与SLA'
   critical_gaps:
     - gap: 'E2E测试完全缺失'
       risk: 'HIGH'
@@ -60,8 +96,9 @@ trace:
       - '建立自动化性能回归测试'
       - '实现跨浏览器兼容性测试'
       - '添加可访问性(a11y)测试覆盖'
-  gate_decision: 'CONCERNS'
+  gate_decision: 'FAIL'
   decision_rationale: |
+    触发确定性规则：存在 score ≥ 9 的关键风险（PERF-001），Gate = FAIL（未豁免）。
     Story 1.3存在严重测试覆盖缺口：
     1. E2E测试完全缺失(高风险) - 用户完整搜索旅程无验证
     2. 路由系统集成测试缺失(高风险) - TanStack Router集成、预加载、懒加载未测试
