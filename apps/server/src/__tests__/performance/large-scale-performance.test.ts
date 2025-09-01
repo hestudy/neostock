@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '../../db';
 import { stocks, stock_daily } from '../../db/schema/stocks';
 import { testClient } from '../helpers/test-client';
+import { sql } from 'drizzle-orm';
 
 // 性能阈值定义
 const PERFORMANCE_THRESHOLDS = {
@@ -115,12 +116,67 @@ describe('Large Scale Performance Tests', () => {
   let stockCodes: string[];
 
   beforeAll(async () => {
-    console.log('开始生成4000只股票测试数据...');
+    console.log('开始初始化数据库和生成4000只股票测试数据...');
     const startTime = Date.now();
     
-    // 清理现有数据
-    await db.delete(stock_daily);
-    await db.delete(stocks);
+    // 直接创建表结构而不依赖迁移系统
+    try {
+      // 启用外键约束
+      await db.run(sql`PRAGMA foreign_keys = ON`);
+      
+      // 创建 stocks 表
+      await db.run(sql`
+        CREATE TABLE IF NOT EXISTS stocks (
+          ts_code TEXT PRIMARY KEY,
+          symbol TEXT NOT NULL,
+          name TEXT NOT NULL,
+          area TEXT,
+          industry TEXT,
+          market TEXT,
+          list_date TEXT,
+          is_hs TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      `);
+      
+      // 创建索引
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_symbol_idx ON stocks (symbol)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_name_idx ON stocks (name)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_industry_idx ON stocks (industry)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_market_idx ON stocks (market)`);
+      
+      // 创建 stock_daily 表
+      await db.run(sql`
+        CREATE TABLE IF NOT EXISTS stock_daily (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ts_code TEXT NOT NULL,
+          trade_date TEXT NOT NULL,
+          open REAL NOT NULL,
+          high REAL NOT NULL,
+          low REAL NOT NULL,
+          close REAL NOT NULL,
+          vol REAL DEFAULT 0,
+          amount REAL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (ts_code) REFERENCES stocks (ts_code) ON DELETE CASCADE ON UPDATE CASCADE
+        )
+      `);
+      
+      // 创建 stock_daily 的索引
+      await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS stock_daily_ts_code_trade_date_idx ON stock_daily (ts_code, trade_date)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stock_daily_trade_date_idx ON stock_daily (trade_date)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stock_daily_ts_code_idx ON stock_daily (ts_code)`);
+      
+      console.log('数据库表创建完成');
+      
+      // 清理现有数据
+      await db.run(sql`DELETE FROM stock_daily`);
+      await db.run(sql`DELETE FROM stocks`);
+    } catch (error) {
+      console.error('初始化数据库失败:', error);
+      throw error;
+    }
     
     // 生成4000只股票数据
     testStocks = generator.generateStockData(4000);
@@ -154,8 +210,12 @@ describe('Large Scale Performance Tests', () => {
 
   afterAll(async () => {
     console.log('清理测试数据...');
-    await db.delete(stock_daily);
-    await db.delete(stocks);
+    try {
+      await db.run(sql`DELETE FROM stock_daily`);
+      await db.run(sql`DELETE FROM stocks`);
+    } catch (error) {
+      console.warn('清理数据时出现错误:', error);
+    }
   });
 
   describe('4000股票搜索性能', () => {

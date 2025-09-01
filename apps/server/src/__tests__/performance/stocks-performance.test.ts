@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '../../db';
 import { stocks, stock_daily } from '../../db/schema/stocks';
 import { testClient } from '../helpers/test-client';
+import { sql } from 'drizzle-orm';
 
 // 类型定义
 interface SearchApiResponse {
@@ -68,6 +69,58 @@ describe('Stocks API Performance Tests', () => {
   const PERFORMANCE_THRESHOLD_MS = 100; // <100ms requirement
 
   beforeAll(async () => {
+    // 直接创建表结构而不依赖迁移系统
+    try {
+      // 启用外键约束
+      await db.run(sql`PRAGMA foreign_keys = ON`);
+      
+      // 创建 stocks 表
+      await db.run(sql`
+        CREATE TABLE IF NOT EXISTS stocks (
+          ts_code TEXT PRIMARY KEY,
+          symbol TEXT NOT NULL,
+          name TEXT NOT NULL,
+          area TEXT,
+          industry TEXT,
+          market TEXT,
+          list_date TEXT,
+          is_hs TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      `);
+      
+      // 创建索引
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_symbol_idx ON stocks (symbol)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_name_idx ON stocks (name)`);
+      await db.run(sql`CREATE INDEX IF NOT EXISTS stocks_industry_idx ON stocks (industry)`);
+      
+      // 创建 stock_daily 表
+      await db.run(sql`
+        CREATE TABLE IF NOT EXISTS stock_daily (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ts_code TEXT NOT NULL,
+          trade_date TEXT NOT NULL,
+          open REAL NOT NULL,
+          high REAL NOT NULL,
+          low REAL NOT NULL,
+          close REAL NOT NULL,
+          vol REAL DEFAULT 0,
+          amount REAL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (ts_code) REFERENCES stocks (ts_code) ON DELETE CASCADE ON UPDATE CASCADE
+        )
+      `);
+      
+      // 创建 stock_daily 的索引
+      await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS stock_daily_ts_code_trade_date_idx ON stock_daily (ts_code, trade_date)`);
+      
+      console.log('数据库表创建完成');
+    } catch (error) {
+      console.error('初始化数据库失败:', error);
+      throw error;
+    }
+    
     // 插入测试数据以确保有足够的数据进行性能测试
     const testStocks = [
       {
@@ -108,10 +161,15 @@ describe('Stocks API Performance Tests', () => {
       },
     ];
 
-    // 清理并插入测试数据
-    await db.delete(stock_daily);
-    await db.delete(stocks);
-    await db.insert(stocks).values(testStocks);
+    // 清理并插入测试数据（使用 sql 防止表不存在错误）
+    try {
+      await db.run(sql`DELETE FROM stock_daily`);
+      await db.run(sql`DELETE FROM stocks`);
+      await db.insert(stocks).values(testStocks);
+    } catch (error) {
+      console.warn('初始化测试数据时出现错误:', error);
+      throw error;
+    }
 
     // 插入一些日线数据用于测试
     const dailyData = [
@@ -144,8 +202,12 @@ describe('Stocks API Performance Tests', () => {
 
   afterAll(async () => {
     // 清理测试数据
-    await db.delete(stock_daily);
-    await db.delete(stocks);
+    try {
+      await db.run(sql`DELETE FROM stock_daily`);
+      await db.run(sql`DELETE FROM stocks`);
+    } catch (error) {
+      console.warn('清理测试数据时出现错误:', error);
+    }
   });
 
   describe('Search Performance', () => {
