@@ -1,22 +1,10 @@
-// 导入测试库
+// 导入测试库与工具
 import '@testing-library/jest-dom'
 import { vi, afterEach } from 'vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 
-// 确保全局对象正确设置
-if (typeof globalThis !== 'undefined') {
-  globalThis.vi = vi
-}
-
-// 设置 vi 全局可用
-(global as unknown as { vi: typeof vi }).vi = vi
-;(globalThis as unknown as { vi: typeof vi }).vi = vi
-
-// 确保在jsdom环境中window和document可用
-if (typeof window !== 'undefined') {
-  ;(window as unknown as { vi: typeof vi }).vi = vi
-
-  // Mock matchMedia
+// polyfill: matchMedia（happy-dom 默认不提供）
+if (typeof window !== 'undefined' && !('matchMedia' in window)) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
@@ -30,114 +18,43 @@ if (typeof window !== 'undefined') {
       dispatchEvent: vi.fn(),
     })),
   })
-
-  // Mock scrollTo
-  window.scrollTo = vi.fn()
-
-  // 确保document有完整的DOM方法
-  if (document) {
-    if (!document.getElementsByTagName) {
-      document.getElementsByTagName = vi.fn(() => [{ appendChild: vi.fn() }])
-    }
-    if (!document.head) {
-      document.head = document.createElement('head')
-    }
-    if (!document.createTextNode) {
-      document.createTextNode = vi.fn(() => ({}))
-    }
-  }
-} else if (typeof global !== 'undefined') {
-  // 如果window未定义，确保document在global中可用
-  if (typeof (global as unknown as { document?: unknown }).document === 'undefined') {
-    (global as unknown as { document: unknown }).document = {
-      head: { appendChild: vi.fn(), removeChild: vi.fn() },
-      body: { appendChild: vi.fn(), removeChild: vi.fn() },
-      createElement: vi.fn(() => ({ 
-        style: {},
-        setAttribute: vi.fn(),
-        getAttribute: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        appendChild: vi.fn(),
-        styleSheet: null
-      })),
-      createTextNode: vi.fn(() => ({})),
-      getElementById: vi.fn(),
-      querySelector: vi.fn(),
-      querySelectorAll: vi.fn(() => []),
-      getElementsByTagName: vi.fn(() => [{ appendChild: vi.fn() }]),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-      defaultView: {
-        getComputedStyle: vi.fn(() => ({})),
-        matchMedia: vi.fn().mockImplementation(() => ({
-          matches: false,
-          addListener: vi.fn(),
-          removeListener: vi.fn(),
-        })),
-        scrollTo: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn()
-      }
-    };
-  }
-  if (typeof (global as unknown as { window?: unknown }).window === 'undefined') {
-    (global as unknown as { window: unknown }).window = {
-      document: (global as unknown as { document: unknown }).document,
-      matchMedia: vi.fn().mockImplementation(() => ({
-        matches: false,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-      })),
-      scrollTo: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-      getComputedStyle: vi.fn(() => ({})),
-      location: { href: 'http://localhost:3000' },
-      navigator: { userAgent: 'test' }
-    };
-  }
 }
 
-// Mock ResizeObserver
-if (typeof global !== 'undefined') {
-  global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }))
+// polyfill: scrollTo（某些环境不存在）
+if (typeof window !== 'undefined' && typeof window.scrollTo !== 'function') {
+  Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true })
 }
 
-// Mock IntersectionObserver
-if (typeof global !== 'undefined') {
-  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-    root: null,
-    rootMargin: '',
-    thresholds: [],
-  }))
+// polyfill: ResizeObserver / IntersectionObserver（按需提供）
+if (!('ResizeObserver' in globalThis)) {
+  class ResizeObserverMock {
+    observe = vi.fn<(target: Element) => void>()
+    unobserve = vi.fn<(target: Element) => void>()
+    disconnect = vi.fn<() => void>()
+  }
+  ;(globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+    ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
-// Mock environment variables for better-auth
-process.env.AUTH_BASE_URL = process.env.AUTH_BASE_URL || 'http://localhost:3000'
+if (!('IntersectionObserver' in globalThis)) {
+  class IntersectionObserverMock {
+    root: Element | Document | null = null
+    rootMargin = ''
+    thresholds: ReadonlyArray<number> = []
+    observe = vi.fn<(target: Element) => void>()
+    unobserve = vi.fn<(target: Element) => void>()
+    disconnect = vi.fn<() => void>()
+    takeRecords = vi.fn<() => ReadonlyArray<IntersectionObserverEntry>>(() => [])
+  }
+  ;(globalThis as unknown as { IntersectionObserver: typeof IntersectionObserver }).IntersectionObserver =
+    IntersectionObserverMock as unknown as typeof IntersectionObserver
+}
 
+// 测试库配置
+configure({ testIdAttribute: 'data-testid', asyncUtilTimeout: 2000 })
 
-// 确保用户事件库能够正常工作
-import { configure } from '@testing-library/react'
-
-configure({
-  testIdAttribute: 'data-testid',
-  asyncUtilTimeout: 2000
-})
-
-// 全局DOM清理
+// 每个用例后清理并重置定时器
 afterEach(() => {
   cleanup()
-  // 清理所有定时器
   vi.clearAllTimers()
 })
