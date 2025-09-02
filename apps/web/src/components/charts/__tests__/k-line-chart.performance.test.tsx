@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+const vi = require('vitest');
 import { render, screen, act } from '@testing-library/react';
 import { KLineChart } from '../k-line-chart';
 import type { ChartDataPoint, TechnicalIndicatorData } from '../../types/charts';
