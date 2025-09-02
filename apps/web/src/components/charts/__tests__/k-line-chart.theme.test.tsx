@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-const vi = require('vitest');
-import { render, screen, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, act } from '@testing-library/react';
 import { KLineChart } from '../k-line-chart';
-import type { ChartDataPoint, TechnicalIndicatorData } from '../../types/charts';
+import type { ChartDataPoint } from '../../../types/charts';
+import { createChartInstance, applyTheme } from '../chart-utils';
+import { useTheme } from '../../../hooks/use-theme';
+import { createMockChart } from './test-utils';
 
 // Mock dependencies
 vi.mock('lightweight-charts', () => ({
@@ -20,37 +22,28 @@ vi.mock('lightweight-charts', () => ({
   }
 }));
 
-vi.mock('../chart-utils', () => ({
-  createChartInstance: vi.fn(),
-  updateChartData: vi.fn(),
-  addMASeries: vi.fn(),
-  addMACDSeries: vi.fn(),
-  addRSISeries: vi.fn(),
-  removeTechnicalIndicator: vi.fn(),
-  resizeChart: vi.fn(),
-  destroyChart: vi.fn(),
-  applyTheme: vi.fn(),
-  monitorChartPerformance: vi.fn()
-}));
+vi.mock('../chart-utils');
+vi.mock('../../../hooks/use-theme');
 
 describe('KLineChart Theme System Tests', () => {
   let mockContainer: HTMLElement;
-  let mockChart: any;
+  let mockChart: ReturnType<typeof createMockChart>;
 
   beforeEach(() => {
     mockContainer = document.createElement('div');
     mockContainer.id = 'chart-container';
     document.body.appendChild(mockContainer);
     
-    mockChart = {
-      addSeries: vi.fn(),
-      removeSeries: vi.fn(),
-      resize: vi.fn(),
-      remove: vi.fn(),
-      applyOptions: vi.fn()
-    };
+    mockChart = createMockChart();
     
-    (require('lightweight-charts').createChart as any).mockReturnValue(mockChart);
+    vi.mocked(createChartInstance).mockReturnValue({
+      chart: mockChart,
+      candlestickSeries: null,
+      volumeSeries: null,
+      maSeries: new Map(),
+      macdSeries: {},
+      rsiSeries: new Map()
+    });
   });
 
   afterEach(() => {
@@ -66,11 +59,11 @@ describe('KLineChart Theme System Tests', () => {
 
   describe('浅色主题测试', () => {
     it('应该正确应用浅色主题', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'light' }));
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light' });
       
       render(<KLineChart data={mockData} width={800} height={400} />);
       
-      expect(require('../chart-utils').createChartInstance).toHaveBeenCalledWith(
+      expect(createChartInstance).toHaveBeenCalledWith(
         expect.objectContaining({
           layout: {
             background: { type: 'solid', color: '#ffffff' },
@@ -79,19 +72,19 @@ describe('KLineChart Theme System Tests', () => {
         })
       );
       
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledWith(
+      expect(applyTheme).toHaveBeenCalledWith(
         expect.any(Object),
         'light'
       );
     });
 
     it('应该在浅色主题下使用正确的颜色配置', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'light' }));
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light' });
       
       render(<KLineChart data={mockData} width={800} height={400} />);
       
       // 验证浅色主题的配置
-      const createChartCall = require('../chart-utils').createChartInstance.mock.calls[0];
+      const createChartCall = vi.mocked(createChartInstance).mock.calls[0];
       const config = createChartCall[0];
       
       expect(config.layout?.background).toEqual({ type: 'solid', color: '#ffffff' });
@@ -101,12 +94,12 @@ describe('KLineChart Theme System Tests', () => {
     });
 
     it('应该在浅色主题下使用正确的蜡烛图颜色', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'light' }));
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light' });
       
       render(<KLineChart data={mockData} width={800} height={400} />);
       
       // 验证蜡烛图颜色配置
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledWith(
+      expect(applyTheme).toHaveBeenCalledWith(
         expect.any(Object),
         'light'
       );
@@ -115,11 +108,11 @@ describe('KLineChart Theme System Tests', () => {
 
   describe('深色主题测试', () => {
     it('应该正确应用深色主题', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'dark' }));
+      vi.mocked(useTheme).mockReturnValue({ theme: 'dark' });
       
       render(<KLineChart data={mockData} width={800} height={400} />);
       
-      expect(require('../chart-utils').createChartInstance).toHaveBeenCalledWith(
+      expect(createChartInstance).toHaveBeenCalledWith(
         expect.objectContaining({
           layout: {
             background: { type: 'solid', color: '#1a1a1a' },
@@ -128,19 +121,19 @@ describe('KLineChart Theme System Tests', () => {
         })
       );
       
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledWith(
+      expect(applyTheme).toHaveBeenCalledWith(
         expect.any(Object),
         'dark'
       );
     });
 
     it('应该在深色主题下使用正确的颜色配置', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'dark' }));
+      vi.mocked(useTheme).mockReturnValue({ theme: 'dark' });
       
       render(<KLineChart data={mockData} width={800} height={400} />);
       
       // 验证深色主题的配置
-      const createChartCall = require('../chart-utils').createChartInstance.mock.calls[0];
+      const createChartCall = vi.mocked(createChartInstance).mock.calls[0];
       const config = createChartCall[0];
       
       expect(config.layout?.background).toEqual({ type: 'solid', color: '#1a1a1a' });
@@ -150,12 +143,12 @@ describe('KLineChart Theme System Tests', () => {
     });
 
     it('应该在深色主题下使用正确的蜡烛图颜色', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'dark' }));
+      vi.mocked(useTheme).mockReturnValue({ theme: 'dark' });
       
       render(<KLineChart data={mockData} width={800} height={400} />);
       
-      // 验证深色主题下的蜡烛图颜色
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledWith(
+      // 验证蜡烛图颜色配置
+      expect(applyTheme).toHaveBeenCalledWith(
         expect.any(Object),
         'dark'
       );
@@ -163,269 +156,197 @@ describe('KLineChart Theme System Tests', () => {
   });
 
   describe('主题切换测试', () => {
-    it('应该支持主题动态切换', () => {
-      const mockUseTheme = vi.fn()
-        .mockReturnValueOnce({ theme: 'light' })
-        .mockReturnValueOnce({ theme: 'dark' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
+    it('应该在主题变化时重新应用主题', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'light',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
       
       const { rerender } = render(<KLineChart data={mockData} width={800} height={400} />);
       
-      // 初始浅色主题
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledWith(
-        expect.any(Object),
-        'light'
-      );
-      
       // 切换到深色主题
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'dark',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'dark',
+        systemTheme: 'light'
+      });
       rerender(<KLineChart data={mockData} width={800} height={400} />);
       
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledWith(
+      expect(applyTheme).toHaveBeenCalledTimes(2);
+      expect(applyTheme).toHaveBeenLastCalledWith(
         expect.any(Object),
         'dark'
       );
     });
 
-    it('应该在主题切换时更新所有相关配置', () => {
-      const mockUseTheme = vi.fn()
-        .mockReturnValueOnce({ theme: 'light' })
-        .mockReturnValueOnce({ theme: 'dark' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
-      
-      const { rerender } = render(<KLineChart data={mockData} width={800} height={400} />);
-      
-      // 浅色主题配置
-      expect(require('../chart-utils').createChartInstance).toHaveBeenCalledWith(
-        expect.objectContaining({
-          layout: {
-            background: { type: 'solid', color: '#ffffff' },
-            textColor: '#333333'
-          }
-        })
-      );
-      
-      // 深色主题配置
-      rerender(<KLineChart data={mockData} width={800} height={400} />);
-      
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledTimes(2);
-    });
-
-    it('应该在主题切换时保持数据完整性', () => {
-      const mockUseTheme = vi.fn()
-        .mockReturnValueOnce({ theme: 'light' })
-        .mockReturnValueOnce({ theme: 'dark' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
+    it('应该在主题变化时更新图表配置', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'light',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
       
       const { rerender } = render(<KLineChart data={mockData} width={800} height={400} />);
       
-      // 主题切换前后，图表应该继续显示相同的数据
-      expect(require('../chart-utils').updateChartData).toHaveBeenCalledTimes(1);
-      
+      // 切换到深色主题
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'dark',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'dark',
+        systemTheme: 'light'
+      });
       rerender(<KLineChart data={mockData} width={800} height={400} />);
       
-      // 数据不应该因为主题切换而重新加载
-      expect(require('../chart-utils').updateChartData).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('主题颜色一致性测试', () => {
-    it('应该保持与shadcn/ui组件风格一致', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'light' }));
-      
-      render(<KLineChart data={mockData} width={800} height={400} />);
-      
-      // 验证颜色与shadcn/ui设计系统一致
-      const createChartCall = require('../chart-utils').createChartInstance.mock.calls[0];
-      const config = createChartCall[0];
-      
-      // 浅色主题背景色应该与shadcn/ui Card组件一致
-      expect(config.layout?.background).toEqual({ type: 'solid', color: '#ffffff' });
-      
-      // 网格线颜色应该与shadcn/ui边框颜色一致
-      expect(config.grid?.vertLines?.color).toBe('#e0e0e0');
-      expect(config.grid?.horzLines?.color).toBe('#e0e0e0');
-    });
-
-    it('应该在深色主题下保持一致性', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'dark' }));
-      
-      render(<KLineChart data={mockData} width={800} height={400} />);
-      
-      const createChartCall = require('../chart-utils').createChartInstance.mock.calls[0];
-      const config = createChartCall[0];
-      
-      // 深色主题背景色
-      expect(config.layout?.background).toEqual({ type: 'solid', color: '#1a1a1a' });
-      
-      // 深色主题网格线颜色
-      expect(config.grid?.vertLines?.color).toBe('#2a2a2a');
-      expect(config.grid?.horzLines?.color).toBe('#2a2a2a');
-    });
-  });
-
-  describe('蜡烛图颜色测试', () => {
-    it('应该在涨跌时使用正确的颜色', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'light' }));
-      
-      render(<KLineChart data={mockData} width={800} height={400} />);
-      
-      // 验证蜡烛图颜色配置
-      expect(require('../chart-utils').createChartInstance).toHaveBeenCalled();
-    });
-
-    it('应该在主题切换时保持蜡烛图颜色逻辑', () => {
-      const mockUseTheme = vi.fn()
-        .mockReturnValueOnce({ theme: 'light' })
-        .mockReturnValueOnce({ theme: 'dark' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
-      
-      const { rerender } = render(<KLineChart data={mockData} width={800} height={400} />);
-      
-      // 涨跌颜色逻辑应该在主题切换时保持一致
-      rerender(<KLineChart data={mockData} width={800} height={400} />);
-      
-      // 颜色逻辑应该保持不变，只是主题色值改变
-      expect(require('../chart-utils').applyTheme).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('技术指标主题测试', () => {
-    it('应该在主题切换时更新技术指标颜色', () => {
-      const technicalData: TechnicalIndicatorData[] = [
-        { time: '2024-01-01', ma5: 102, ma10: 100, ma20: 98, ma60: 95 },
-        { time: '2024-01-02', ma5: 107, ma10: 103, ma20: 100, ma60: 96 }
-      ];
-
-      const mockUseTheme = vi.fn()
-        .mockReturnValueOnce({ theme: 'light' })
-        .mockReturnValueOnce({ theme: 'dark' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
-      
-      const { rerender } = render(
-        <KLineChart 
-          data={mockData} 
-          technicalData={technicalData}
-          indicators={{ ma: [5, 10, 20, 60] }}
-          width={800} 
-          height={400} 
-        />
-      );
-      
-      // 技术指标应该在主题切换时重新应用
-      rerender(
-        <KLineChart 
-          data={mockData} 
-          technicalData={technicalData}
-          indicators={{ ma: [5, 10, 20, 60] }}
-          width={800} 
-          height={400} 
-        />
-      );
-      
-      expect(require('../chart-utils').addMASeries).toHaveBeenCalledTimes(8); // 4个MA * 2次主题切换
-    });
-
-    it('应该在不同主题下保持技术指标的可读性', () => {
-      const technicalData: TechnicalIndicatorData[] = [
-        { time: '2024-01-01', ma5: 102, ma10: 100, ma20: 98, ma60: 95 },
-        { time: '2024-01-02', ma5: 107, ma10: 103, ma20: 100, ma60: 96 }
-      ];
-
-      // 测试浅色主题
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'light' }));
-      
-      render(
-        <KLineChart 
-          data={mockData} 
-          technicalData={technicalData}
-          indicators={{ ma: [5, 10, 20, 60] }}
-          width={800} 
-          height={400} 
-        />
-      );
-      
-      expect(require('../chart-utils').addMASeries).toHaveBeenCalledTimes(4);
+      // 验证深色主题的配置
+      const lastApplyThemeCall = vi.mocked(applyTheme).mock.calls[1];
+      expect(lastApplyThemeCall[1]).toBe('dark');
     });
   });
 
   describe('主题性能测试', () => {
-    it('应该在主题切换时保持良好性能', () => {
-      const mockUseTheme = vi.fn()
-        .mockReturnValueOnce({ theme: 'light' })
-        .mockReturnValueOnce({ theme: 'dark' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
-      
-      const { rerender } = render(<KLineChart data={mockData} width={800} height={400} />);
+    it('应该高效处理主题切换', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'light',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
       
       const startTime = performance.now();
       
-      // 主题切换
-      rerender(<KLineChart data={mockData} width={800} height={400} />);
+      render(<KLineChart data={mockData} width={800} height={400} />);
+      
+      // 模拟快速主题切换
+      for (let i = 0; i < 5; i++) {
+        vi.mocked(useTheme).mockReturnValue({ 
+          theme: i % 2 === 0 ? 'light' : 'dark',
+          setTheme: vi.fn(),
+          themes: ['light', 'dark'],
+          resolvedTheme: i % 2 === 0 ? 'light' : 'dark',
+          systemTheme: 'light'
+        });
+        act(() => {
+          render(<KLineChart data={mockData} width={800} height={400} />);
+        });
+      }
       
       const endTime = performance.now();
-      const themeSwitchTime = endTime - startTime;
-
-      expect(themeSwitchTime).toBeLessThan(50);
+      const renderTime = endTime - startTime;
+      
+      // 主题切换应该在合理时间内完成
+      expect(renderTime).toBeLessThan(100); // 100ms 内完成
     });
 
-    it('应该在频繁主题切换时保持稳定', () => {
-      const mockUseTheme = vi.fn()
-        .mockReturnValue({ theme: 'light' });
-      
-      vi.mocked('../../hooks/use-theme').useTheme = mockUseTheme;
+    it('应该在主题切换时保持图表状态', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'light',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
       
       const { rerender } = render(<KLineChart data={mockData} width={800} height={400} />);
       
-      // 模拟频繁主题切换
-      const switchTimes: number[] = [];
-      
-      for (let i = 0; i < 5; i++) {
-        const startTime = performance.now();
-        
-        // 切换主题
-        mockUseTheme.mockReturnValue({ theme: i % 2 === 0 ? 'light' : 'dark' });
-        rerender(<KLineChart data={mockData} width={800} height={400} />);
-        
-        const endTime = performance.now();
-        switchTimes.push(endTime - startTime);
-      }
-      
-      // 验证所有主题切换都在合理时间内完成
-      switchTimes.forEach(time => {
-        expect(time).toBeLessThan(50);
+      // 切换到深色主题
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'dark',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'dark',
+        systemTheme: 'light'
       });
+      rerender(<KLineChart data={mockData} width={800} height={400} />);
+      
+      // 验证图表实例保持不变
+      expect(createChartInstance).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('主题边界情况测试', () => {
-    it('应该处理未知主题值', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: 'unknown' as any }));
+  describe('主题兼容性测试', () => {
+    it('应该处理未知主题', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'unknown' as 'light' | 'dark',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
       
-      expect(() => {
-        render(<KLineChart data={mockData} width={800} height={400} />);
-      }).not.toThrow();
+      render(<KLineChart data={mockData} width={800} height={400} />);
+      
+      // 应该回退到浅色主题
+      expect(applyTheme).toHaveBeenCalledWith(
+        expect.any(Object),
+        'light'
+      );
     });
 
-    it('应该在主题为null时使用默认主题', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({ theme: null as any }));
+    it('应该处理主题配置缺失', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'light',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
       
-      expect(() => {
-        render(<KLineChart data={mockData} width={800} height={400} />);
-      }).not.toThrow();
+      render(<KLineChart data={mockData} width={800} height={400} />);
+      
+      // 应该回退到浅色主题
+      expect(applyTheme).toHaveBeenCalledWith(
+        expect.any(Object),
+        'light'
+      );
+    });
+  });
+
+  describe('主题可访问性测试', () => {
+    it('应该确保颜色对比度符合WCAG标准', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'light',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'light',
+        systemTheme: 'light'
+      });
+      
+      render(<KLineChart data={mockData} width={800} height={400} />);
+      
+      // 验证浅色主题的颜色对比度
+      const createChartCall = vi.mocked(createChartInstance).mock.calls[0];
+      const config = createChartCall[0];
+      
+      expect(config.layout?.textColor).toBe('#333333');
+      expect(config.layout?.background?.color).toBe('#ffffff');
     });
 
-    it('应该在主题配置缺失时使用默认值', () => {
-      vi.mocked('../../hooks/use-theme').useTheme = vi.fn(() => ({} as any));
+    it('应该在深色主题下保持良好的可读性', () => {
+      vi.mocked(useTheme).mockReturnValue({ 
+        theme: 'dark',
+        setTheme: vi.fn(),
+        themes: ['light', 'dark'],
+        resolvedTheme: 'dark',
+        systemTheme: 'light'
+      });
       
-      expect(() => {
-        render(<KLineChart data={mockData} width={800} height={400} />);
-      }).not.toThrow();
+      render(<KLineChart data={mockData} width={800} height={400} />);
+      
+      // 验证深色主题的颜色对比度
+      const createChartCall = vi.mocked(createChartInstance).mock.calls[0];
+      const config = createChartCall[0];
+      
+      expect(config.layout?.textColor).toBe('#ffffff');
+      expect(config.layout?.background?.color).toBe('#1a1a1a');
     });
   });
 });

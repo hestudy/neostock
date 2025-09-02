@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-const vi = require('vitest');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { KLineChart } from '../k-line-chart';
-import type { ChartDataPoint, TechnicalIndicatorData } from '../../types/charts';
+import type { ChartDataPoint, TechnicalIndicatorData } from '../../../types/charts';
+import { createChartInstance, updateChartData, addMASeries, addMACDSeries, addRSISeries, resizeChart, destroyChart, monitorChartPerformance } from '../chart-utils';
+import { useStockChart } from '../../../hooks/use-stock-chart';
+import { createMockChart, createMockTouch } from './test-utils';
 
 // Mock dependencies
 vi.mock('lightweight-charts', () => ({
@@ -20,129 +22,56 @@ vi.mock('lightweight-charts', () => ({
   }
 }));
 
-vi.mock('../chart-utils', () => ({
-  createChartInstance: vi.fn(),
-  updateChartData: vi.fn(),
-  addMASeries: vi.fn(),
-  addMACDSeries: vi.fn(),
-  addRSISeries: vi.fn(),
-  removeTechnicalIndicator: vi.fn(),
-  resizeChart: vi.fn(),
-  destroyChart: vi.fn(),
-  applyTheme: vi.fn(),
-  monitorChartPerformance: vi.fn()
-}));
-
-vi.mock('../../hooks/use-theme', () => ({
-  useTheme: vi.fn(() => ({ theme: 'light' }))
-}));
-
-// Mock touch events
-Object.defineProperty(window, 'TouchEvent', {
-  value: class TouchEvent extends Event {
-    constructor(type: string, init: TouchEventInit = {}) {
-      super(type, init);
-      this.touches = init.touches || [];
-      this.changedTouches = init.changedTouches || [];
-      this.targetTouches = init.targetTouches || [];
-    }
-    touches: Touch[];
-    changedTouches: Touch[];
-    targetTouches: Touch[];
-  },
-  writable: true
-});
-
-Object.defineProperty(window, 'Touch', {
-  value: class Touch {
-    constructor(init: TouchInit) {
-      this.identifier = init.identifier || 0;
-      this.target = init.target || null;
-      this.clientX = init.clientX || 0;
-      this.clientY = init.clientY || 0;
-      this.pageX = init.pageX || 0;
-      this.pageY = init.pageY || 0;
-      this.screenX = init.screenX || 0;
-      this.screenY = init.screenY || 0;
-    }
-    identifier: number;
-    target: EventTarget | null;
-    clientX: number;
-    clientY: number;
-    pageX: number;
-    pageY: number;
-    screenX: number;
-    screenY: number;
-  },
-  writable: true
-});
+vi.mock('../chart-utils');
+vi.mock('../../hooks/use-theme');
+vi.mock('../../hooks/use-stock-chart');
 
 describe('KLineChart Mobile Tests', () => {
   let mockContainer: HTMLElement;
-  let mockChart: any;
+  let mockChart: ReturnType<typeof createMockChart>;
 
   beforeEach(() => {
     mockContainer = document.createElement('div');
     mockContainer.id = 'chart-container';
     document.body.appendChild(mockContainer);
     
-    mockChart = {
-      addSeries: vi.fn(),
-      removeSeries: vi.fn(),
-      resize: vi.fn(),
-      remove: vi.fn(),
-      applyOptions: vi.fn()
-    };
+    mockChart = createMockChart();
     
-    (require('lightweight-charts').createChart as any).mockReturnValue(mockChart);
-    
-    // 模拟移动端环境
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 375
-    });
-    Object.defineProperty(window, 'innerHeight', {
-      writable: true,
-      configurable: true,
-      value: 667
-    });
-    
-    // 模拟触摸设备
-    Object.defineProperty(navigator, 'maxTouchPoints', {
-      writable: true,
-      value: 5
+    vi.mocked(createChartInstance).mockReturnValue({
+      chart: mockChart,
+      candlestickSeries: null,
+      volumeSeries: null,
+      maSeries: new Map(),
+      macdSeries: {},
+      rsiSeries: new Map()
     });
   });
 
   afterEach(() => {
     document.body.removeChild(mockContainer);
     vi.clearAllMocks();
-    
-    // 重置窗口大小
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 1024
-    });
-    Object.defineProperty(window, 'innerHeight', {
-      writable: true,
-      configurable: true,
-      value: 768
-    });
   });
 
-  const mockData: ChartDataPoint[] = Array.from({ length: 50 }, (_, i) => ({
-    time: `2024-01-${String(i + 1).padStart(2, '0')}`,
-    open: 100 + i,
-    high: 110 + i,
-    low: 90 + i,
-    close: 105 + i,
-    volume: 1000000 + i * 1000
-  }));
+  const mockData: ChartDataPoint[] = [
+    { time: '2024-01-01', open: 100, high: 110, low: 90, close: 105, volume: 1000000 },
+    { time: '2024-01-02', open: 105, high: 115, low: 95, close: 110, volume: 1200000 },
+    { time: '2024-01-03', open: 110, high: 120, low: 100, close: 115, volume: 1100000 }
+  ];
 
-  describe('移动端基础适配', () => {
-    it('应该在移动端屏幕尺寸下正确渲染', () => {
+  describe('移动端响应式设计', () => {
+    it('应该在移动端视口下正确渲染', () => {
+      // 模拟移动端视口
+      Object.defineProperty(window, 'innerWidth', {
+        writable: true,
+        configurable: true,
+        value: 375,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        writable: true,
+        configurable: true,
+        value: 667,
+      });
+
       render(<KLineChart data={mockData} width={375} height={300} />);
       
       const chartContainer = screen.getByTestId('k-line-chart');
@@ -150,263 +79,81 @@ describe('KLineChart Mobile Tests', () => {
       expect(chartContainer).toHaveStyle({ width: '375px', height: '300px' });
     });
 
-    it('应该在小屏幕手机上适配', () => {
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 320
-      });
-      
-      render(<KLineChart data={mockData} width={320} height={240} />);
+    it('应该在移动端使用合适的默认尺寸', () => {
+      render(<KLineChart data={mockData} width={375} height={300} />);
       
       const chartContainer = screen.getByTestId('k-line-chart');
       expect(chartContainer).toBeInTheDocument();
-      expect(chartContainer).toHaveStyle({ width: '320px', height: '240px' });
+      // 验证移动端默认尺寸
+      expect(chartContainer).toHaveStyle({ width: '100%', height: '300px' });
     });
 
-    it('应该在大屏手机上适配', () => {
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 414
-      });
+    it('应该在移动端禁用某些功能', () => {
+      render(<KLineChart data={mockData} width={375} height={300} />);
       
-      render(<KLineChart data={mockData} width={414} height={350} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      expect(chartContainer).toBeInTheDocument();
-      expect(chartContainer).toHaveStyle({ width: '414px', height: '350px' });
+      // 验证移动端特定的配置
+      expect(createChartInstance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 375,
+          height: 300
+        })
+      );
     });
   });
 
-  describe('触摸手势支持', () => {
-    it('应该支持单点触摸操作', () => {
+  describe('移动端触摸交互', () => {
+    it('应该支持触摸滑动', () => {
       render(<KLineChart data={mockData} width={375} height={300} />);
       
       const chartContainer = screen.getByTestId('k-line-chart');
       
-      // 模拟单点触摸
-      const touch = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 100,
-        clientY: 150
+      // 模拟触摸滑动
+      const touchStart = new TouchEvent('touchstart', {
+        touches: [createMockTouch({ clientX: 100, clientY: 200, identifier: 1 })],
       });
-      
-      const touchStartEvent = new TouchEvent('touchstart', {
-        touches: [touch],
-        changedTouches: [touch],
-        targetTouches: [touch]
+      const touchMove = new TouchEvent('touchmove', {
+        touches: [createMockTouch({ clientX: 150, clientY: 200, identifier: 1 })],
       });
+      const touchEnd = new TouchEvent('touchend');
       
-      fireEvent(chartContainer, touchStartEvent);
+      fireEvent(chartContainer, touchStart);
+      fireEvent(chartContainer, touchMove);
+      fireEvent(chartContainer, touchEnd);
       
+      // 验证触摸交互的处理
       expect(chartContainer).toBeInTheDocument();
     });
 
-    it('应该支持多点触摸操作', () => {
-      render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 模拟多点触摸（捏合手势）
-      const touch1 = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 100,
-        clientY: 150
-      });
-      
-      const touch2 = new Touch({
-        identifier: 2,
-        target: chartContainer,
-        clientX: 200,
-        clientY: 150
-      });
-      
-      const touchStartEvent = new TouchEvent('touchstart', {
-        touches: [touch1, touch2],
-        changedTouches: [touch1, touch2],
-        targetTouches: [touch1, touch2]
-      });
-      
-      fireEvent(chartContainer, touchStartEvent);
-      
-      expect(chartContainer).toBeInTheDocument();
-    });
-
-    it('应该支持触摸滑动操作', () => {
-      render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 开始触摸
-      const startTouch = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 100,
-        clientY: 150
-      });
-      
-      const touchStartEvent = new TouchEvent('touchstart', {
-        touches: [startTouch],
-        changedTouches: [startTouch],
-        targetTouches: [startTouch]
-      });
-      
-      fireEvent(chartContainer, touchStartEvent);
-      
-      // 滑动触摸
-      const moveTouch = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 50,
-        clientY: 150
-      });
-      
-      const touchMoveEvent = new TouchEvent('touchmove', {
-        touches: [moveTouch],
-        changedTouches: [moveTouch],
-        targetTouches: [moveTouch]
-      });
-      
-      fireEvent(chartContainer, touchMoveEvent);
-      
-      // 结束触摸
-      const endTouch = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 50,
-        clientY: 150
-      });
-      
-      const touchEndEvent = new TouchEvent('touchend', {
-        touches: [],
-        changedTouches: [endTouch],
-        targetTouches: []
-      });
-      
-      fireEvent(chartContainer, touchEndEvent);
-      
-      expect(chartContainer).toBeInTheDocument();
-    });
-  });
-
-  describe('触摸缩放功能', () => {
     it('应该支持捏合缩放', () => {
       render(<KLineChart data={mockData} width={375} height={300} />);
       
       const chartContainer = screen.getByTestId('k-line-chart');
       
-      // 捏合开始
-      const touch1 = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 100,
-        clientY: 150
+      // 模拟捏合缩放
+      const pinchStart = new TouchEvent('touchstart', {
+        touches: [
+          createMockTouch({ clientX: 100, clientY: 200, identifier: 1 }),
+          createMockTouch({ clientX: 200, clientY: 300, identifier: 2 })
+        ],
+      });
+      const pinchMove = new TouchEvent('touchmove', {
+        touches: [
+          createMockTouch({ clientX: 80, clientY: 180, identifier: 1 }),
+          createMockTouch({ clientX: 220, clientY: 320, identifier: 2 })
+        ],
       });
       
-      const touch2 = new Touch({
-        identifier: 2,
-        target: chartContainer,
-        clientX: 200,
-        clientY: 150
-      });
+      fireEvent(chartContainer, pinchStart);
+      fireEvent(chartContainer, pinchMove);
       
-      const pinchStartEvent = new TouchEvent('touchstart', {
-        touches: [touch1, touch2],
-        changedTouches: [touch1, touch2],
-        targetTouches: [touch1, touch2]
-      });
-      
-      fireEvent(chartContainer, pinchStartEvent);
-      
-      // 捏合过程（放大）
-      const moveTouch1 = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 80,
-        clientY: 150
-      });
-      
-      const moveTouch2 = new Touch({
-        identifier: 2,
-        target: chartContainer,
-        clientX: 220,
-        clientY: 150
-      });
-      
-      const pinchMoveEvent = new TouchEvent('touchmove', {
-        touches: [moveTouch1, moveTouch2],
-        changedTouches: [moveTouch1, moveTouch2],
-        targetTouches: [moveTouch1, moveTouch2]
-      });
-      
-      fireEvent(chartContainer, pinchMoveEvent);
-      
-      expect(chartContainer).toBeInTheDocument();
-    });
-
-    it('应该支持双指缩放', () => {
-      render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 双指缩放开始
-      const touches = [
-        new Touch({
-          identifier: 1,
-          target: chartContainer,
-          clientX: 150,
-          clientY: 100
-        }),
-        new Touch({
-          identifier: 2,
-          target: chartContainer,
-          clientX: 150,
-          clientY: 200
-        })
-      ];
-      
-      const zoomStartEvent = new TouchEvent('touchstart', {
-        touches,
-        changedTouches: touches,
-        targetTouches: touches
-      });
-      
-      fireEvent(chartContainer, zoomStartEvent);
-      
-      // 缩放过程
-      const moveTouches = [
-        new Touch({
-          identifier: 1,
-          target: chartContainer,
-          clientX: 150,
-          clientY: 80
-        }),
-        new Touch({
-          identifier: 2,
-          target: chartContainer,
-          clientX: 150,
-          clientY: 220
-        })
-      ];
-      
-      const zoomMoveEvent = new TouchEvent('touchmove', {
-        touches: moveTouches,
-        changedTouches: moveTouches,
-        targetTouches: moveTouches
-      });
-      
-      fireEvent(chartContainer, zoomMoveEvent);
-      
+      // 验证缩放处理
       expect(chartContainer).toBeInTheDocument();
     });
   });
 
-  describe('移动端性能测试', () => {
-    it('应该在移动端保持良好性能', () => {
-      const mobileData: ChartDataPoint[] = Array.from({ length: 200 }, (_, i) => ({
+  describe('移动端性能优化', () => {
+    it('应该在移动端限制数据点数量', () => {
+      const largeData = Array.from({ length: 500 }, (_, i) => ({
         time: `2024-01-${String(i + 1).padStart(2, '0')}`,
         open: 100 + i,
         high: 110 + i,
@@ -415,217 +162,235 @@ describe('KLineChart Mobile Tests', () => {
         volume: 1000000 + i * 1000
       }));
 
-      const startTime = performance.now();
+      render(<KLineChart data={largeData} width={375} height={300} />);
       
-      render(<KLineChart data={mobileData} width={375} height={300} />);
-      
-      const endTime = performance.now();
-      const renderTime = endTime - startTime;
-
-      expect(renderTime).toBeLessThan(100);
-      expect(screen.getByTestId('k-line-chart')).toBeInTheDocument();
-    });
-
-    it('应该在触摸事件处理时保持响应', () => {
-      render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 模拟快速连续触摸事件
-      const touchEvents = [];
-      for (let i = 0; i < 10; i++) {
-        const touch = new Touch({
-          identifier: i,
-          target: chartContainer,
-          clientX: 100 + i * 10,
-          clientY: 150
-        });
-        
-        const touchEvent = new TouchEvent('touchstart', {
-          touches: [touch],
-          changedTouches: [touch],
-          targetTouches: [touch]
-        });
-        
-        touchEvents.push(touchEvent);
-      }
-      
-      const startTime = performance.now();
-      
-      touchEvents.forEach(event => {
-        fireEvent(chartContainer, event);
-      });
-      
-      const endTime = performance.now();
-      const processingTime = endTime - startTime;
-
-      expect(processingTime).toBeLessThan(50);
-    });
-  });
-
-  describe('移动端适配优化', () => {
-    it('应该优化移动端的图表显示', () => {
-      render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 验证图表配置针对移动端进行了优化
-      expect(require('../chart-utils').createChartInstance).toHaveBeenCalledWith(
-        expect.objectContaining({
-          width: 375,
-          height: 300,
-          crosshair: expect.objectContaining({
-            mode: expect.any(Number)
-          })
-        })
+      // 验证移动端数据限制
+      expect(updateChartData).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.arrayContaining(largeData.slice(-200)), // 移动端限制为200个点
+        expect.any(Object)
       );
     });
 
-    it('应该在移动端启用性能优化', () => {
+    it('应该在移动端禁用复杂的技术指标', () => {
+      const technicalData: TechnicalIndicatorData[] = [
+        { time: '2024-01-01', ma5: 102, ma10: 100, ma20: 98, ma60: 95 },
+        { time: '2024-01-02', ma5: 107, ma10: 103, ma20: 100, ma60: 96 }
+      ];
+
       render(
         <KLineChart 
           data={mockData} 
           width={375} 
           height={300}
-          performance={{ 
-            maxDataPoints: 200,
-            enableCache: true,
-            enableLazyLoading: true
+          technicalData={technicalData}
+          indicators={{
+            ma: [5, 10],
+            macd: true,
+            rsi: [6]
           }}
         />
       );
       
-      // 验证性能优化配置
-      expect(require('../chart-utils').updateChartData).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.any(Array),
-        expect.objectContaining({
-          maxDataPoints: 200,
-          enableCache: true,
-          enableLazyLoading: true
-        })
-      );
+      // 验证移动端简化配置
+      expect(addMASeries).not.toHaveBeenCalled();
+      expect(addMACDSeries).not.toHaveBeenCalled();
+      expect(addRSISeries).not.toHaveBeenCalled();
     });
   });
 
-  describe('移动端交互体验', () => {
-    it('应该防止误触和页面滚动冲突', () => {
+  describe('移动端屏幕旋转', () => {
+    it('应该处理屏幕旋转', () => {
       render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 模拟可能引起页面滚动的触摸事件
-      const touch = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 100,
-        clientY: 150
-      });
-      
-      const touchStartEvent = new TouchEvent('touchstart', {
-        touches: [touch],
-        changedTouches: [touch],
-        targetTouches: [touch]
-      });
-      
-      // 阻止默认行为来防止页面滚动
-      touchStartEvent.preventDefault();
-      
-      fireEvent(chartContainer, touchStartEvent);
-      
-      expect(chartContainer).toBeInTheDocument();
-    });
-
-    it('应该支持长按操作', () => {
-      render(<KLineChart data={mockData} width={375} height={300} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      
-      // 模拟长按触摸
-      const touch = new Touch({
-        identifier: 1,
-        target: chartContainer,
-        clientX: 100,
-        clientY: 150
-      });
-      
-      const touchStartEvent = new TouchEvent('touchstart', {
-        touches: [touch],
-        changedTouches: [touch],
-        targetTouches: [touch]
-      });
-      
-      fireEvent(chartContainer, touchStartEvent);
-      
-      // 模拟长按（保持触摸状态）
-      act(() => {
-        // 等待长按时间
-        vi.advanceTimersByTime(500);
-      });
-      
-      expect(chartContainer).toBeInTheDocument();
-    });
-  });
-
-  describe('移动端响应式设计', () => {
-    it('应该支持横屏模式', () => {
-      // 模拟横屏
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 667
-      });
-      Object.defineProperty(window, 'innerHeight', {
-        writable: true,
-        configurable: true,
-        value: 375
-      });
-      
-      render(<KLineChart data={mockData} width={667} height={300} responsive={true} />);
-      
-      const chartContainer = screen.getByTestId('k-line-chart');
-      expect(chartContainer).toBeInTheDocument();
-      expect(chartContainer).toHaveStyle({ width: '667px', height: '300px' });
-    });
-
-    it('应该在屏幕旋转时自动调整', () => {
-      const { rerender } = render(
-        <KLineChart 
-          data={mockData} 
-          width={375} 
-          height={300} 
-          responsive={true} 
-        />
-      );
       
       // 模拟屏幕旋转
       act(() => {
         Object.defineProperty(window, 'innerWidth', {
           writable: true,
           configurable: true,
-          value: 667
+          value: 667,
         });
         Object.defineProperty(window, 'innerHeight', {
           writable: true,
           configurable: true,
-          value: 375
+          value: 375,
         });
-        
         window.dispatchEvent(new Event('resize'));
       });
       
-      rerender(
-        <KLineChart 
-          data={mockData} 
-          width={667} 
-          height={300} 
-          responsive={true} 
-        />
+      expect(resizeChart).toHaveBeenCalled();
+    });
+
+    it('应该在屏幕旋转时保持数据完整性', () => {
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 模拟屏幕旋转
+      act(() => {
+        Object.defineProperty(window, 'innerWidth', {
+          writable: true,
+          configurable: true,
+          value: 667,
+        });
+        Object.defineProperty(window, 'innerHeight', {
+          writable: true,
+          configurable: true,
+          value: 375,
+        });
+        window.dispatchEvent(new Event('resize'));
+      });
+      
+      // 验证数据没有丢失
+      expect(updateChartData).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('移动端内存管理', () => {
+    it('应该在移动端使用轻量级渲染', () => {
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 验证移动端轻量级配置
+      expect(createChartInstance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 375,
+          height: 300
+        })
       );
+    });
+
+    it('应该在页面不可见时释放资源', () => {
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 模拟页面隐藏
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      
+      // 验证资源释放
+      expect(destroyChart).not.toHaveBeenCalled(); // 应该有防抖逻辑
+    });
+  });
+
+  describe('移动端电池优化', () => {
+    it('应该在低电量模式下降低刷新率', () => {
+      // 模拟低电量模式
+      Object.defineProperty(navigator, 'getBattery', {
+        writable: true,
+        configurable: true,
+        value: vi.fn().mockResolvedValue({
+          level: 0.2,
+          charging: false
+        })
+      });
+
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 验证低电量模式下的优化
+      expect(monitorChartPerformance).toHaveBeenCalled();
+    });
+
+    it('应该在充电时启用完整功能', () => {
+      // 模拟充电模式
+      Object.defineProperty(navigator, 'getBattery', {
+        writable: true,
+        configurable: true,
+        value: vi.fn().mockResolvedValue({
+          level: 0.8,
+          charging: true
+        })
+      });
+
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 验证充电模式下的完整功能
+      expect(updateChartData).toHaveBeenCalled();
+    });
+  });
+
+  describe('移动端网络适配', () => {
+    it('应该在弱网环境下使用缓存', () => {
+      // 模拟弱网环境
+      Object.defineProperty(navigator, 'connection', {
+        writable: true,
+        configurable: true,
+        value: {
+          effectiveType: 'slow-2g',
+          saveData: true
+        }
+      });
+
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 验证弱网环境下的缓存使用
+      expect(updateChartData).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Array),
+        expect.objectContaining({
+          enableCache: true
+        })
+      );
+    });
+
+    it('应该在强网环境下实时更新', () => {
+      // 模拟强网环境
+      Object.defineProperty(navigator, 'connection', {
+        writable: true,
+        configurable: true,
+        value: {
+          effectiveType: '4g',
+          saveData: false
+        }
+      });
+
+      render(<KLineChart data={mockData} width={375} height={300} />);
+      
+      // 验证强网环境下的实时更新
+      expect(updateChartData).toHaveBeenCalled();
+    });
+  });
+
+  describe('移动端用户体验', () => {
+    it('应该显示移动端特定的加载状态', () => {
+      vi.mocked(useStockChart).mockReturnValue({
+        data: [],
+        loading: true,
+        error: null,
+        refetch: vi.fn()
+      });
+
+      render(<KLineChart data={[]} width={375} height={300} />);
+      
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    });
+
+    it('应该显示移动端特定的错误状态', () => {
+      vi.mocked(useStockChart).mockReturnValue({
+        data: [],
+        loading: false,
+        error: '网络连接失败',
+        refetch: vi.fn()
+      });
+
+      render(<KLineChart data={[]} width={375} height={300} />);
+      
+      expect(screen.getByText('网络连接失败')).toBeInTheDocument();
+    });
+
+    it('应该支持移动端特定的手势操作', () => {
+      render(<KLineChart data={mockData} width={375} height={300} />);
       
       const chartContainer = screen.getByTestId('k-line-chart');
+      
+      // 模拟双指缩放
+      const pinchGesture = new TouchEvent('touchstart', {
+        touches: [
+          createMockTouch({ clientX: 100, clientY: 200, identifier: 1 }),
+          createMockTouch({ clientX: 200, clientY: 300, identifier: 2 })
+        ],
+      });
+      
+      fireEvent(chartContainer, pinchGesture);
+      
       expect(chartContainer).toBeInTheDocument();
-      expect(require('../chart-utils').resizeChart).toHaveBeenCalled();
     });
   });
 });

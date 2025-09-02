@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-const vi = require('vitest');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { 
   createChartInstance, 
   updateChartData, 
@@ -11,15 +10,17 @@ import {
   destroyChart,
   applyTheme,
   monitorChartPerformance,
+  defaultPerformanceConfig,
   getCachedData,
   clearCache
 } from '../chart-utils';
+import { createMockChart, createMockSeries } from '../../components/charts/__tests__/test-utils';
 import type { 
   ChartConfig, 
   ChartDataPoint, 
   TechnicalIndicatorData, 
   ChartInstance,
-  ChartTheme 
+  TechnicalIndicatorConfig
 } from '../../types/charts';
 
 // Mock lightweight-charts
@@ -45,8 +46,8 @@ const mockCreateChart = vi.fn();
 
 describe('Chart Utils', () => {
   let mockContainer: HTMLElement;
-  let mockChart: any;
-  let mockSeries: any;
+  let mockChart: ReturnType<typeof createMockChart>;
+  let mockSeries: ReturnType<typeof createMockSeries>;
   let mockInstance: ChartInstance;
 
   beforeEach(() => {
@@ -55,24 +56,12 @@ describe('Chart Utils', () => {
     document.body.appendChild(mockContainer);
 
     // Setup mock chart
-    mockSeries = {
-      setData: vi.fn(),
-      applyOptions: vi.fn()
-    };
-
-    mockChart = {
-      addSeries: vi.fn(() => mockSeries),
-      removeSeries: vi.fn(),
-      resize: vi.fn(),
-      remove: vi.fn(),
-      applyOptions: vi.fn()
-    };
+    mockSeries = createMockSeries();
+    mockChart = createMockChart();
+    mockChart.addSeries = vi.fn(() => mockSeries);
 
     mockCreateChart.mockReturnValue(mockChart);
     
-    // Mock implementation
-    (require('lightweight-charts').createChart as any) = mockCreateChart;
-
     // Setup mock instance
     mockInstance = {
       chart: mockChart,
@@ -205,11 +194,14 @@ describe('Chart Utils', () => {
         { time: '2024-01-02', macd_dif: 1.8, macd_dea: 1.4, macd_hist: 0.4 }
       ];
 
-      const config = {
+      const config: TechnicalIndicatorConfig['macd'] = {
+        fastPeriod: 12,
+        slowPeriod: 26,
+        signalPeriod: 9,
         colors: {
           macd: '#2196f3',
           signal: '#ff9800',
-          histogram: { up: '#4caf50', down: '#f44336' }
+          histogram: '#4caf50'
         }
       };
 
@@ -224,7 +216,7 @@ describe('Chart Utils', () => {
         { time: '2024-01-01', macd_dif: 1.5, macd_dea: 1.2, macd_hist: 0.3 }
       ];
 
-      addMACDSeries(mockInstance, macdData, undefined as any);
+      addMACDSeries(mockInstance, macdData, undefined);
 
       expect(mockChart.addSeries).not.toHaveBeenCalled();
     });
@@ -247,7 +239,7 @@ describe('Chart Utils', () => {
   describe('removeTechnicalIndicator', () => {
     it('应该正确删除MA指标', () => {
       const maSeries = { remove: vi.fn() };
-      mockInstance.maSeries.set(5, maSeries as any);
+      mockInstance.maSeries.set(5, maSeries);
 
       removeTechnicalIndicator(mockInstance, 'ma', 5);
 
@@ -288,7 +280,7 @@ describe('Chart Utils', () => {
       // 添加一些系列
       mockInstance.candlestickSeries = mockSeries;
       mockInstance.volumeSeries = mockSeries;
-      mockInstance.maSeries.set(5, mockSeries as any);
+      mockInstance.maSeries.set(5, mockSeries);
 
       destroyChart(mockInstance);
 
@@ -324,9 +316,9 @@ describe('Chart Utils', () => {
   describe('monitorChartPerformance', () => {
     it('应该返回性能监控数据', () => {
       // 添加一些系列来模拟数据点
-      mockInstance.maSeries.set(5, {} as any);
-      mockInstance.maSeries.set(10, {} as any);
-      mockInstance.macdSeries = { macd: {}, signal: {}, histogram: {} };
+      mockInstance.maSeries.set(5, mockSeries);
+      mockInstance.maSeries.set(10, mockSeries);
+      mockInstance.macdSeries = { macd: mockSeries, signal: mockSeries, histogram: mockSeries };
 
       const performance = monitorChartPerformance(mockInstance);
 
@@ -346,7 +338,10 @@ describe('Chart Utils', () => {
         { time: '2024-01-01', open: 100, high: 110, low: 90, close: 105 }
       ];
 
-      updateChartData(mockInstance, mockData, { enableCache: true });
+      updateChartData(mockInstance, mockData, { 
+        ...defaultPerformanceConfig, 
+        enableCache: true 
+      });
 
       const cacheKey = `chart_data_1_2024-01-01_2024-01-01`;
       const cachedData = getCachedData(cacheKey);

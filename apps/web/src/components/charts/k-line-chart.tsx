@@ -11,8 +11,8 @@ import {
   addMASeries, 
   addMACDSeries, 
   addRSISeries,
-  removeTechnicalIndicator,
   resizeChart,
+  defaultPerformanceConfig,
   destroyChart,
   applyTheme,
   monitorChartPerformance
@@ -49,6 +49,24 @@ interface KLineChartProps {
   onMouseOver?: (data: ChartDataPoint | null) => void;
   /** 鼠标移出事件回调 */
   onMouseOut?: () => void;
+  /** 键盘事件回调 */
+  onKeyDown?: (event: React.KeyboardEvent) => void;
+  /** 是否显示移动平均线 */
+  showMA?: boolean;
+  /** 移动平均线周期 */
+  maPeriods?: number[];
+  /** 是否显示MACD */
+  showMACD?: boolean;
+  /** 是否显示RSI */
+  showRSI?: boolean;
+  /** RSI周期 */
+  rsiPeriods?: number[];
+  /** 图表点击事件（兼容旧版本） */
+  onChartClick?: (data: ChartDataPoint | null) => void;
+  /** 图表悬停事件（兼容旧版本） */
+  onChartHover?: (data: ChartDataPoint | null) => void;
+  /** 鼠标移出事件回调 */
+  onMouseOut?: () => void;
   /** 自定义样式类名 */
   className?: string;
 }
@@ -59,7 +77,6 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   width,
   height,
   crosshair = true,
-  zoom = true,
   responsive = false,
   indicators = {},
   performance = {},
@@ -70,7 +87,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<ChartInstance | null>(null);
-  const { theme } = useTheme();
+  const { theme = 'light' } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,16 +105,16 @@ export const KLineChart: React.FC<KLineChartProps> = ({
           textColor: theme === 'dark' ? '#ffffff' : '#333333'
         },
         crosshair: {
-          mode: crosshair ? (0 as any) : undefined,
+          mode: crosshair ? 0 : undefined,
           vertLine: {
             width: 1,
             color: theme === 'dark' ? '#758696' : '#758696',
-            style: 3 as any
+            style: 3
           },
           horzLine: {
             width: 1,
             color: theme === 'dark' ? '#758696' : '#758696',
-            style: 3 as any
+            style: 3
           }
         }
       });
@@ -105,7 +122,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
       chartInstanceRef.current = instance;
       
       // 应用主题
-      applyTheme(instance, theme as any);
+      applyTheme(instance, theme);
       
       return instance;
     } catch (err) {
@@ -124,7 +141,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
       setError(null);
 
       // 更新基础数据
-      updateChartData(chartInstanceRef.current, data, performance);
+      updateChartData(chartInstanceRef.current, data, { ...defaultPerformanceConfig, ...performance });
 
       // 添加技术指标
       if (technicalData.length > 0) {
@@ -139,10 +156,13 @@ export const KLineChart: React.FC<KLineChartProps> = ({
         // MACD指标
         if (indicators.macd) {
           addMACDSeries(chartInstanceRef.current!, technicalData, {
+            fastPeriod: 12,
+            slowPeriod: 26,
+            signalPeriod: 9,
             colors: {
               macd: '#2196f3',
               signal: '#ff9800',
-              histogram: { up: '#4caf50', down: '#f44336' }
+              histogram: '#4caf50'
             }
           });
         }
@@ -195,7 +215,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   };
 
   // 处理点击事件
-  const handleClick = useCallback((event: React.MouseEvent) => {
+  const handleClick = useCallback(() => {
     if (!onClick) return;
     
     // 简化的点击处理 - 实际应用中需要获取点击位置的数据
@@ -204,7 +224,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   }, [onClick, data]);
 
   // 处理鼠标悬停事件
-  const handleMouseOver = useCallback((event: React.MouseEvent) => {
+  const handleMouseOver = useCallback(() => {
     if (!onMouseOver) return;
     
     // 简化的鼠标悬停处理
@@ -231,7 +251,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   useEffect(() => {
     if (!chartInstanceRef.current) return;
     
-    applyTheme(chartInstanceRef.current, theme as any);
+    applyTheme(chartInstanceRef.current, theme);
   }, [theme]);
 
   // 数据变化时更新图表
@@ -325,7 +345,14 @@ export const KLineChart: React.FC<KLineChartProps> = ({
         onKeyDown={(e) => {
           // 键盘导航支持
           if (e.key === 'Enter' || e.key === ' ') {
-            handleClick(e as any);
+            // 创建一个模拟的鼠标事件
+            const mockEvent = {
+              preventDefault: () => {},
+              stopPropagation: () => {},
+              currentTarget: e.currentTarget,
+              target: e.target
+            } as React.MouseEvent;
+            handleClick(mockEvent);
           }
         }}
       />

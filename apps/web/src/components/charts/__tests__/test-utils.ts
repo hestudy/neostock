@@ -1,0 +1,84 @@
+import type { IChartApi, ISeriesApi, CustomData, CustomSeriesOptions, DeepPartial, SeriesOptionsCommon, ICustomSeriesPaneView, Time } from 'lightweight-charts';
+
+// Mock chart API for testing
+export interface MockChartApi extends Partial<IChartApi> {
+  addSeries: ReturnType<typeof vi.fn>;
+  removeSeries: ReturnType<typeof vi.fn>;
+  resize: ReturnType<typeof vi.fn>;
+  remove: ReturnType<typeof vi.fn>;
+  applyOptions: ReturnType<typeof vi.fn>;
+  subscribeCrosshairMove?: ReturnType<typeof vi.fn>;
+  unsubscribeCrosshairMove?: ReturnType<typeof vi.fn>;
+  subscribeClick?: ReturnType<typeof vi.fn>;
+  unsubscribeClick?: ReturnType<typeof vi.fn>;
+  addCustomSeries?: <TData extends CustomData<Time>, 
+    TOptions extends CustomSeriesOptions, 
+    TPartialOptions extends DeepPartial<TOptions & SeriesOptionsCommon> = DeepPartial<TOptions & SeriesOptionsCommon>>(
+    customPaneView: ICustomSeriesPaneView<TData>,
+    customOptions?: TPartialOptions,
+    paneIndex?: number
+  ) => ISeriesApi<TData>;
+}
+
+// Mock series API for testing
+export interface MockSeriesApi<TType extends keyof import('lightweight-charts').SeriesOptionsMap = any> 
+  extends Partial<ISeriesApi<TType>> {
+  setData: ReturnType<typeof vi.fn>;
+  applyOptions: ReturnType<typeof vi.fn>;
+  priceFormatter?: ReturnType<typeof vi.fn>;
+  priceToCoordinate?: ReturnType<typeof vi.fn>;
+  coordinateToPrice?: ReturnType<typeof vi.fn>;
+  barsInLogicalRange?: ReturnType<typeof vi.fn>;
+  options: () => import('lightweight-charts').SeriesOptionsMap[TType];
+}
+
+// Create mock chart instance
+export function createMockChart(): MockChartApi {
+  return {
+    addSeries: vi.fn(),
+    removeSeries: vi.fn(),
+    resize: vi.fn(),
+    remove: vi.fn(),
+    applyOptions: vi.fn(),
+    subscribeCrosshairMove: vi.fn(),
+    unsubscribeCrosshairMove: vi.fn(),
+    subscribeClick: vi.fn(),
+    unsubscribeClick: vi.fn(),
+  };
+}
+
+// Create mock series instance
+export function createMockSeries<TType extends keyof import('lightweight-charts').SeriesOptionsMap = any>(): MockSeriesApi<TType> {
+  return {
+    setData: vi.fn(),
+    applyOptions: vi.fn(),
+    priceFormatter: vi.fn(),
+    priceToCoordinate: vi.fn(),
+    coordinateToPrice: vi.fn(),
+    barsInLogicalRange: vi.fn(),
+    options: () => ({}) as any,
+  };
+}
+
+// Mock touch event for testing
+export function createMockTouch(params: {
+  clientX: number;
+  clientY: number;
+  identifier?: number;
+  target?: EventTarget;
+}): Touch {
+  return {
+    clientX: params.clientX,
+    clientY: params.clientY,
+    identifier: params.identifier ?? 0,
+    target: params.target ?? document.createElement('div'),
+    force: 1,
+    pageX: params.clientX,
+    pageY: params.clientY,
+    radiusX: 1,
+    radiusY: 1,
+    rotationAngle: 0,
+    screenX: params.clientX,
+    screenY: params.clientY,
+  };
+}

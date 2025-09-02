@@ -1,4 +1,4 @@
-import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
+import { CrosshairMode } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 
 // 图表数据类型
@@ -149,10 +149,7 @@ export interface ChartThemeConfig {
   macd: {
     macd: string;
     signal: string;
-    histogram: {
-      up: string;
-      down: string;
-    };
+    histogram: string;
   };
   rsi: {
     colors: string[];
@@ -163,10 +160,10 @@ export interface ChartThemeConfig {
 
 // 图表事件类型
 export interface ChartEvents {
-  onCrosshairMove?: (param: any) => void;
-  onClick?: (param: any) => void;
-  onVisibleTimeRangeChange?: (param: any) => void;
-  onVisibleLogicalRangeChange?: (param: any) => void;
+  onCrosshairMove?: (param: unknown) => void;
+  onClick?: (param: unknown) => void;
+  onVisibleTimeRangeChange?: (param: unknown) => void;
+  onVisibleLogicalRangeChange?: (param: unknown) => void;
 }
 
 // 图表性能配置
@@ -208,10 +205,7 @@ export const defaultChartThemes: Record<ChartTheme, ChartThemeConfig> = {
     macd: {
       macd: '#2196f3',
       signal: '#ff9800',
-      histogram: {
-        up: '#4caf50',
-        down: '#f44336',
-      },
+      histogram: '#4caf50',
     },
     rsi: {
       colors: ['#2196f3', '#ff9800', '#4caf50'],
@@ -247,10 +241,7 @@ export const defaultChartThemes: Record<ChartTheme, ChartThemeConfig> = {
     macd: {
       macd: '#2196f3',
       signal: '#ff9800',
-      histogram: {
-        up: '#4caf50',
-        down: '#f44336',
-      },
+      histogram: '#4caf50',
     },
     rsi: {
       colors: ['#2196f3', '#ff9800', '#4caf50'],
