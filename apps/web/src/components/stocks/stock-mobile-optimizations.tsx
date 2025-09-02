@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface TouchOptimizedButtonProps {
@@ -88,14 +89,15 @@ interface MobileListItemProps {
 	selected?: boolean;
 }
 
-export function MobileListItem({
+export const MobileListItem = forwardRef<HTMLDivElement, MobileListItemProps>(({
 	children,
 	onClick,
 	className,
 	selected = false,
-}: MobileListItemProps) {
+}: MobileListItemProps, ref) => {
 	return (
 		<div
+			ref={ref}
 			onClick={onClick}
 			className={cn(
 				// 触摸目标最小44px
@@ -117,4 +119,4 @@ export function MobileListItem({
 			{children}
 		</div>
 	);
-}
+});

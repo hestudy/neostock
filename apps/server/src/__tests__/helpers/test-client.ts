@@ -1,5 +1,120 @@
 // Mock test client for performance testing
 
+// 定义股票数据类型
+export interface StockData {
+  ts_code: string;
+  symbol: string;
+  name: string;
+  area: string;
+  industry: string;
+  market: string;
+  list_date: string;
+  is_hs: string;
+}
+
+export interface DailyData {
+  ts_code: string;
+  trade_date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  vol: number;
+  amount: number;
+}
+
+// 定义测试客户端接口
+interface TestClient {
+  reset: () => Promise<void>;
+  insertStocks: (stocks: StockData[]) => Promise<void>;
+  insertDailyData: (data: DailyData[]) => Promise<void>;
+  searchStocks: (params: { keyword: string; limit: number }) => Promise<StockData[]>;
+  getStockDetail: (params: { ts_code: string }) => Promise<StockData & { current_price?: number; change_pct?: number }>;
+  getStockDailyData: (params: { ts_code: string; start_date: string; end_date: string }) => Promise<DailyData[]>;
+  addToFavorites: (params: { user_id: string; ts_code: string }) => Promise<void>;
+  getUserFavorites: (params: { user_id: string }) => Promise<StockData[]>;
+}
+
+// 创建测试客户端
+export const createTestClient = async (): Promise<TestClient> => {
+  // 模拟数据库存储
+  const stocksDb: StockData[] = [];
+  const dailyDataDb: DailyData[] = [];
+  const favoritesDb: Array<{ user_id: string; ts_code: string }> = [];
+
+  return {
+    reset: async () => {
+      stocksDb.length = 0;
+      dailyDataDb.length = 0;
+      favoritesDb.length = 0;
+    },
+
+    insertStocks: async (stocks: StockData[]) => {
+      stocksDb.push(...stocks);
+    },
+
+    insertDailyData: async (data: DailyData[]) => {
+      dailyDataDb.push(...data);
+    },
+
+    searchStocks: async (params: { keyword: string; limit: number }) => {
+      const { keyword, limit } = params;
+      const filtered = stocksDb.filter(stock => 
+        stock.name.includes(keyword) || 
+        stock.ts_code.includes(keyword) || 
+        stock.symbol.includes(keyword) ||
+        stock.industry.includes(keyword) ||
+        stock.area.includes(keyword)
+      );
+      return filtered.slice(0, limit);
+    },
+
+    getStockDetail: async (params: { ts_code: string }) => {
+      const stock = stocksDb.find(s => s.ts_code === params.ts_code);
+      if (!stock) {
+        throw new Error('Stock not found');
+      }
+      
+      // 模拟实时价格
+      const dailyData = dailyDataDb.filter(d => d.ts_code === params.ts_code);
+      const latestData = dailyData[dailyData.length - 1];
+      
+      return {
+        ...stock,
+        current_price: latestData?.close || 0,
+        change_pct: latestData ? ((latestData.close - latestData.open) / latestData.open * 100) : 0
+      };
+    },
+
+    getStockDailyData: async (params: { ts_code: string; start_date: string; end_date: string }) => {
+      const { ts_code, start_date, end_date } = params;
+      return dailyDataDb.filter(data => 
+        data.ts_code === ts_code && 
+        data.trade_date >= start_date && 
+        data.trade_date <= end_date
+      );
+    },
+
+    addToFavorites: async (params: { user_id: string; ts_code: string }) => {
+      const exists = favoritesDb.some(f => 
+        f.user_id === params.user_id && f.ts_code === params.ts_code
+      );
+      if (!exists) {
+        favoritesDb.push(params);
+      }
+    },
+
+    getUserFavorites: async (params: { user_id: string }) => {
+      const userFavorites = favoritesDb
+        .filter(f => f.user_id === params.user_id)
+        .map(f => stocksDb.find(s => s.ts_code === f.ts_code))
+        .filter(Boolean) as StockData[];
+      
+      return userFavorites;
+    },
+  };
+};
+
 // 模拟基础的测试端点，如果实际端点还未实现
 export const mockTestClient = {
   health: {

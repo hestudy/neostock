@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X, History, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MobileSearchInput } from "./mobile-search-optimizations";
+import { useMobileSearchOptimizations } from "@/hooks/use-mobile-search-optimizations";
 
 interface StockSearchProps {
 	onSearch?: (query: string) => void;
@@ -27,7 +29,11 @@ export function StockSearch({
 }: StockSearchProps) {
 	const [value, setValue] = useState(controlledValue || "");
 	const [isFocused, setIsFocused] = useState(false);
+	const [showSuggestions, setShowSuggestions] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	
+	const mobileOptimizations = useMobileSearchOptimizations();
+	const isMobileView = mobileOptimizations.isMobile;
 
 	const currentValue = controlledValue !== undefined ? controlledValue : value;
 
@@ -36,6 +42,13 @@ export function StockSearch({
 			setValue(newValue);
 		}
 		onChange?.(newValue);
+		
+		// Show suggestions on mobile when typing
+		if (isMobileView && newValue.length > 0) {
+			setShowSuggestions(true);
+		} else {
+			setShowSuggestions(false);
+		}
 	};
 
 	const handleSearch = () => {
@@ -60,10 +73,25 @@ export function StockSearch({
 		if (e.key === "Enter") {
 			e.preventDefault();
 			handleSearch();
+			setShowSuggestions(false);
 		}
 		if (e.key === "Escape") {
 			handleClear();
+			setShowSuggestions(false);
 		}
+	};
+
+	const handleFocus = () => {
+		setIsFocused(true);
+		if (isMobileView) {
+			setShowSuggestions(true);
+		}
+	};
+
+	const handleBlur = () => {
+		setIsFocused(false);
+		// Delay hiding suggestions to allow clicks
+		setTimeout(() => setShowSuggestions(false), 200);
 	};
 
 	useEffect(() => {
@@ -72,6 +100,31 @@ export function StockSearch({
 		}
 	}, [autoFocus]);
 
+	// Mobile-optimized search input
+	if (isMobileView) {
+		return (
+			<div className={cn("relative", className)}>
+				<MobileSearchInput
+					value={currentValue}
+					onChange={handleInputChange}
+					onSearch={handleSearch}
+					onFocus={handleFocus}
+					onBlur={handleBlur}
+					placeholder={placeholder}
+					autoFocus={autoFocus}
+					disabled={disabled}
+					showSuggestions={showSuggestions}
+					suggestions={[]} // Will be populated with actual suggestions
+					onSuggestionSelect={(suggestion) => {
+						handleInputChange(suggestion);
+						handleSearch();
+					}}
+				/>
+			</div>
+		);
+	}
+
+	// Desktop search input
 	return (
 		<div className={cn("relative", className)}>
 			<div className="relative flex items-center">
@@ -86,8 +139,8 @@ export function StockSearch({
 					value={currentValue}
 					onChange={(e) => handleInputChange(e.target.value)}
 					onKeyDown={handleKeyDown}
-					onFocus={() => setIsFocused(true)}
-					onBlur={() => setIsFocused(false)}
+					onFocus={handleFocus}
+					onBlur={handleBlur}
 					disabled={disabled}
 					className={cn(
 						"pl-10 pr-20",
@@ -95,8 +148,7 @@ export function StockSearch({
 						"text-base", // 防止iOS缩放
 						isFocused && "ring-2 ring-ring",
 					)}
-					autoComplete="off"
-					spellCheck={false}
+					{...mobileOptimizations.searchInputProps}
 				/>
 
 				<div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
@@ -110,6 +162,7 @@ export function StockSearch({
 								"h-8 w-8 p-0",
 								"min-h-[32px] min-w-[32px]", // 触摸目标
 								"hover:bg-muted",
+								"active:scale-95", // Touch feedback
 							)}
 							disabled={disabled}
 						>
@@ -126,6 +179,7 @@ export function StockSearch({
 						className={cn(
 							"h-8 px-3",
 							"min-h-[32px]", // 触摸目标
+							"active:scale-95", // Touch feedback
 						)}
 					>
 						搜索

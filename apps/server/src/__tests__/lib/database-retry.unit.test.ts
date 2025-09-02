@@ -9,7 +9,7 @@ describe('withDatabaseRetry', () => {
       calls += 1;
       if (calls < 3) {
         const err = new Error('SQLITE_BUSY during test') as Error & { code?: string };
-        (err as any).code = 'SQLITE_BUSY';
+        (err as Error & { code?: string }).code = 'SQLITE_BUSY';
         throw err;
       }
       return 'ok';

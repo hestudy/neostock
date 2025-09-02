@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { rateLimitMiddleware, createCallerFactory, t } from '../../lib/trpc';
+import type { Context } from '../../lib/context';
 const router = t.router;
 
 // 构建一个带速率限制的简单路由，用于验证中间件
@@ -17,7 +18,7 @@ const createCaller = createCallerFactory(testRouter);
 
 describe('RateLimit Middleware', () => {
   it('should allow requests within the limit and block when exceeded', async () => {
-    const caller = createCaller({ clientIP: '127.0.0.1', session: null } as any);
+    const caller = createCaller({ clientIP: '127.0.0.1', session: null } as Context);
 
     // 前两次应通过
     await expect(caller.ping()).resolves.toBe('pong');
