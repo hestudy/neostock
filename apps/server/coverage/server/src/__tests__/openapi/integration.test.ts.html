@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">90.29% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>103/103</span>
+                <span class='fraction'>93/103</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">72.22% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>13/13</span>
+                <span class='fraction'>13/18</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">90.29% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>103/103</span>
+                <span class='fraction'>93/103</span>
             </div>
         
             
@@ -250,39 +250,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -292,9 +266,35 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -364,7 +364,7 @@ describe("OpenAPI Integration", () =&gt; {
 &nbsp;
 	it("should have proper endpoint documentation", () =&gt; {
 		const healthCheck = openApiDocument.paths?.["/health-check"]?.get;
-		expect(healthCheck?.summary).toBe("Health check endpoint");
+		expect(healthCheck?.summary).toBe("Basic health check endpoint");
 		expect(healthCheck?.description).toBe("Returns OK to indicate the service is running");
 		expect(healthCheck?.tags).toContain("Health");
 &nbsp;
@@ -382,14 +382,14 @@ describe("OpenAPI Integration", () =&gt; {
 			expect(validation.coverage).toBeGreaterThanOrEqual(0);
 			
 			// 检查是否有未文档化的端点
-			if (validation.endpoints.undocumented.length &gt; 0) {
-				console.warn("未文档化的端点:", validation.endpoints.undocumented);
-			}
+			if (validation.endpoints.undocumented.length &gt; 0) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >				console.warn("未文档化的端点:", validation.endpoints.undocumented);</span>
+<span class="cstat-no" title="statement not covered" >			}</span>
 			
 			// 如果有同步问题，记录但不强制失败（用于开发阶段）
-			if (validation.issues.length &gt; 0) {
-				console.warn("同步性问题:", validation.issues);
-			}
+			if (validation.issues.length &gt; 0) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >				console.warn("同步性问题:", validation.issues);</span>
+<span class="cstat-no" title="statement not covered" >			}</span>
 		});
 &nbsp;
 		it("应检查文档覆盖率是否达到要求", async () =&gt; {
@@ -402,9 +402,9 @@ describe("OpenAPI Integration", () =&gt; {
 			// 记录覆盖率信息
 			console.log(`文档覆盖率: ${requirements.coverage}% (要求: ${requirements.required}%)`);
 			
-			if (!requirements.passed) {
-				console.warn("文档覆盖率未达标:", requirements.issues);
-			}
+			if (!requirements.passed) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >				console.warn("文档覆盖率未达标:", requirements.issues);</span>
+<span class="cstat-no" title="statement not covered" >			}</span>
 		});
 &nbsp;
 		it("应能检测未文档化的端点", async () =&gt; {
@@ -413,9 +413,9 @@ describe("OpenAPI Integration", () =&gt; {
 			expect(Array.isArray(undocumented)).toBe(true);
 			
 			// 记录未文档化端点但不强制失败
-			if (undocumented.length &gt; 0) {
-				console.warn("发现未文档化端点:", undocumented);
-			}
+			if (undocumented.length &gt; 0) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >				console.warn("发现未文档化端点:", undocumented);</span>
+<span class="cstat-no" title="statement not covered" >			}</span>
 		});
 &nbsp;
 		it("应能验证端点一致性", async () =&gt; {
@@ -425,9 +425,9 @@ describe("OpenAPI Integration", () =&gt; {
 			expect(typeof consistency.consistent).toBe('boolean');
 			expect(Array.isArray(consistency.inconsistencies)).toBe(true);
 			
-			if (!consistency.consistent) {
-				console.warn("端点一致性问题:", consistency.inconsistencies);
-			}
+			if (!consistency.consistent) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >				console.warn("端点一致性问题:", consistency.inconsistencies);</span>
+<span class="cstat-no" title="statement not covered" >			}</span>
 		});
 &nbsp;
 		it("应能生成文档覆盖率报告", async () =&gt; {
@@ -469,7 +469,7 @@ describe("OpenAPI Integration", () =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-25T08:07:28.122Z
+                at 2025-09-02T05:13:48.549Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>
