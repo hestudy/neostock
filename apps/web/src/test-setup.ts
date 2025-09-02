@@ -1,7 +1,40 @@
 // 导入测试库与工具
 import '@testing-library/jest-dom'
-import { vi, afterEach } from 'vitest'
+import { vi, afterEach, describe, it, expect, beforeEach } from 'vitest'
 import { cleanup, configure } from '@testing-library/react'
+
+// 设置全局 vi
+Object.defineProperty(globalThis, 'vi', {
+  value: vi,
+  writable: false,
+  configurable: false
+})
+
+// 设置全局 vitest 函数
+Object.defineProperty(globalThis, 'describe', {
+  value: describe,
+  writable: false,
+  configurable: false
+})
+
+Object.defineProperty(globalThis, 'it', {
+  value: it,
+  writable: false,
+  configurable: false
+})
+
+Object.defineProperty(globalThis, 'expect', {
+  value: expect,
+  writable: false,
+  configurable: false
+})
+
+Object.defineProperty(globalThis, 'beforeEach', {
+  value: beforeEach,
+  writable: false,
+  configurable: false
+})
+
 
 // polyfill: matchMedia（happy-dom 默认不提供）
 if (typeof window !== 'undefined' && !('matchMedia' in window)) {

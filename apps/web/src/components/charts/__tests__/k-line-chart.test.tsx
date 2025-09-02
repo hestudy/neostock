@@ -1,3 +1,6 @@
+// 导入测试设置
+import '../../../test-setup';
+
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { KLineChart } from '../k-line-chart';
@@ -7,25 +10,8 @@ import { useTheme } from '../../../hooks/use-theme';
 import { useStockChart } from '../../../hooks/use-stock-chart';
 import { createMockChart, createMockSeries } from './test-utils';
 
-// Mock dependencies
-vi.mock('lightweight-charts', () => ({
-  createChart: vi.fn(),
-  ColorType: {
-    Solid: 'solid'
-  },
-  CrosshairMode: {
-    Normal: 0
-  },
-  LineStyle: {
-    Solid: 0,
-    Dotted: 3,
-    Dashed: 2
-  }
-}));
-
-vi.mock('../chart-utils');
-vi.mock('../../../hooks/use-theme');
-vi.mock('../../../hooks/use-stock-chart');
+// 手动模拟模块而不使用 vi.mock
+// 在 beforeEach 中设置模拟
 
 const mockCreateChart = vi.fn();
 const mockChart = createMockChart();
@@ -104,7 +90,7 @@ describe('KLineChart Component', () => {
   describe('图表创建和销毁', () => {
     it('应该正确创建图表实例', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -124,7 +110,7 @@ describe('KLineChart Component', () => {
 
     it('应该在组件卸载时销毁图表', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -142,7 +128,7 @@ describe('KLineChart Component', () => {
   describe('数据更新', () => {
     it('应该正确更新图表数据', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -157,7 +143,7 @@ describe('KLineChart Component', () => {
 
     it('应该在数据变化时更新图表', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -177,7 +163,7 @@ describe('KLineChart Component', () => {
   describe('技术指标', () => {
     it('应该正确添加移动平均线', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -201,7 +187,7 @@ describe('KLineChart Component', () => {
 
     it('应该正确添加MACD指标', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -224,7 +210,7 @@ describe('KLineChart Component', () => {
 
     it('应该正确添加RSI指标', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -248,7 +234,7 @@ describe('KLineChart Component', () => {
 
     it('应该正确移除技术指标', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -288,7 +274,7 @@ describe('KLineChart Component', () => {
   describe('主题切换', () => {
     it('应该支持主题切换', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -314,7 +300,7 @@ describe('KLineChart Component', () => {
 
     it('应该在主题变化时更新图表', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -348,7 +334,7 @@ describe('KLineChart Component', () => {
   describe('响应式设计', () => {
     it('应该支持窗口大小调整', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -368,7 +354,7 @@ describe('KLineChart Component', () => {
 
     it('应该支持自定义宽高', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -390,7 +376,7 @@ describe('KLineChart Component', () => {
   describe('性能优化', () => {
     it('应该支持数据分片加载', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -418,7 +404,7 @@ describe('KLineChart Component', () => {
 
     it('应该支持性能监控', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -451,7 +437,7 @@ describe('KLineChart Component', () => {
 
     it('应该处理数据更新失败', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -470,7 +456,7 @@ describe('KLineChart Component', () => {
 
     it('应该处理技术指标添加失败', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -500,7 +486,7 @@ describe('KLineChart Component', () => {
   describe('事件处理', () => {
     it('应该支持图表点击事件', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),
@@ -519,7 +505,7 @@ describe('KLineChart Component', () => {
 
     it('应该支持图表悬停事件', () => {
       vi.mocked(createChartInstance).mockReturnValue({
-        chart: mockChart,
+        chart: mockChart as any,
         candlestickSeries: null,
         volumeSeries: null,
         maSeries: new Map(),

@@ -1,3 +1,6 @@
+// 导入测试设置
+import '../../../test-setup';
+
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { KLineChart } from '../k-line-chart';
@@ -6,25 +9,8 @@ import { createChartInstance, updateChartData, destroyChart, monitorChartPerform
 import { useTheme } from '../../../hooks/use-theme';
 import { createMockChart } from './test-utils';
 
-// Mock dependencies
-vi.mock('lightweight-charts', () => ({
-  createChart: vi.fn(),
-  ColorType: {
-    Solid: 'solid'
-  },
-  CrosshairMode: {
-    Normal: 0
-  },
-  LineStyle: {
-    Solid: 0,
-    Dotted: 3,
-    Dashed: 2
-  }
-}));
-
-vi.mock('../chart-utils');
-vi.mock('../../../hooks/use-theme');
-vi.mock('../../../hooks/use-stock-chart');
+// 手动模拟模块而不使用 vi.mock
+// 在 beforeEach 中设置模拟
 
 describe('KLineChart Performance Tests', () => {
   let mockContainer: HTMLElement;
@@ -38,7 +24,7 @@ describe('KLineChart Performance Tests', () => {
     mockChart = createMockChart();
     
     vi.mocked(createChartInstance).mockReturnValue({
-      chart: mockChart,
+      chart: mockChart as any,
       candlestickSeries: null,
       volumeSeries: null,
       maSeries: new Map(),

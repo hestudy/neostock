@@ -38,7 +38,7 @@ describe('KLineChart Mobile Tests', () => {
     mockChart = createMockChart();
     
     vi.mocked(createChartInstance).mockReturnValue({
-      chart: mockChart,
+      chart: mockChart as any,
       candlestickSeries: null,
       volumeSeries: null,
       maSeries: new Map(),

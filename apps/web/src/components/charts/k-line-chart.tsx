@@ -65,8 +65,6 @@ interface KLineChartProps {
   onChartClick?: (data: ChartDataPoint | null) => void;
   /** 图表悬停事件（兼容旧版本） */
   onChartHover?: (data: ChartDataPoint | null) => void;
-  /** 鼠标移出事件回调 */
-  onMouseOut?: () => void;
   /** 自定义样式类名 */
   className?: string;
 }

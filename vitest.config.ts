@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     // 为前端组件测试配置DOM环境
-    environment: 'jsdom',
+    environment: 'happy-dom',
     // 设置测试设置文件
     setupFiles: ['./apps/web/src/test-setup.ts'],
     // 排除 E2E 测试目录，避免与 Playwright 冲突
@@ -22,5 +22,9 @@ export default defineConfig({
     ],
     // 全局配置
     globals: true,
+    mockReset: true,
+    restoreMocks: true,
+    includeSource: ['src/**/*.{js,ts,tsx}'],
+    testTimeout: 10000,
   },
 })

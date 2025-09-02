@@ -15,8 +15,8 @@ import type {
   TechnicalIndicatorConfig,
   ChartTheme,
   PerformanceConfig
-} from '../types/charts';
-import { defaultChartThemes } from '../types/charts';
+} from '../../types/charts';
+import { defaultChartThemes } from '../../types/charts';
 
 // 默认性能配置
 export const defaultPerformanceConfig: PerformanceConfig = {
