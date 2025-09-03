@@ -120,7 +120,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
       chartInstanceRef.current = instance;
       
       // 应用主题
-      applyTheme(instance, theme);
+      applyTheme(instance, theme as 'light' | 'dark');
       
       return instance;
     } catch (err) {
@@ -249,7 +249,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   useEffect(() => {
     if (!chartInstanceRef.current) return;
     
-    applyTheme(chartInstanceRef.current, theme);
+    applyTheme(chartInstanceRef.current, theme as 'light' | 'dark');
   }, [theme]);
 
   // 数据变化时更新图表
@@ -343,14 +343,7 @@ export const KLineChart: React.FC<KLineChartProps> = ({
         onKeyDown={(e) => {
           // 键盘导航支持
           if (e.key === 'Enter' || e.key === ' ') {
-            // 创建一个模拟的鼠标事件
-            const mockEvent = {
-              preventDefault: () => {},
-              stopPropagation: () => {},
-              currentTarget: e.currentTarget,
-              target: e.target
-            } as React.MouseEvent;
-            handleClick(mockEvent);
+            handleClick();
           }
         }}
       />

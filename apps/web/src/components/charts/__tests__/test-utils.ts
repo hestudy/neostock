@@ -1,4 +1,5 @@
-import type { IChartApi, ISeriesApi, CustomData, CustomSeriesOptions, DeepPartial, SeriesOptionsCommon, ICustomSeriesPaneView, Time } from 'lightweight-charts';
+import { vi } from 'vitest';
+import type { IChartApi } from 'lightweight-charts';
 
 // Mock chart API for testing
 export interface MockChartApi extends Partial<IChartApi> {
@@ -11,25 +12,18 @@ export interface MockChartApi extends Partial<IChartApi> {
   unsubscribeCrosshairMove?: ReturnType<typeof vi.fn>;
   subscribeClick?: ReturnType<typeof vi.fn>;
   unsubscribeClick?: ReturnType<typeof vi.fn>;
-  addCustomSeries?: <TData extends CustomData<Time>, 
-    TOptions extends CustomSeriesOptions, 
-    TPartialOptions extends DeepPartial<TOptions & SeriesOptionsCommon> = DeepPartial<TOptions & SeriesOptionsCommon>>(
-    customPaneView: ICustomSeriesPaneView<TData>,
-    customOptions?: TPartialOptions,
-    paneIndex?: number
-  ) => ISeriesApi<TData>;
 }
 
 // Mock series API for testing
-export interface MockSeriesApi<TType extends keyof import('lightweight-charts').SeriesOptionsMap = any> 
-  extends Partial<ISeriesApi<TType>> {
+export interface MockSeriesApi<TType extends keyof import('lightweight-charts').SeriesOptionsMap = 'Line'> {
   setData: ReturnType<typeof vi.fn>;
   applyOptions: ReturnType<typeof vi.fn>;
-  priceFormatter?: ReturnType<typeof vi.fn>;
-  priceToCoordinate?: ReturnType<typeof vi.fn>;
-  coordinateToPrice?: ReturnType<typeof vi.fn>;
-  barsInLogicalRange?: ReturnType<typeof vi.fn>;
+  priceFormatter: ReturnType<typeof vi.fn>;
+  priceToCoordinate: ReturnType<typeof vi.fn>;
+  coordinateToPrice: ReturnType<typeof vi.fn>;
+  barsInLogicalRange: ReturnType<typeof vi.fn>;
   options: () => import('lightweight-charts').SeriesOptionsMap[TType];
+  priceScale: () => unknown;
 }
 
 // Create mock chart instance
@@ -48,15 +42,16 @@ export function createMockChart(): MockChartApi {
 }
 
 // Create mock series instance
-export function createMockSeries<TType extends keyof import('lightweight-charts').SeriesOptionsMap = any>(): MockSeriesApi<TType> {
+export function createMockSeries<TType extends keyof import('lightweight-charts').SeriesOptionsMap = 'Line'>(): MockSeriesApi<TType> {
   return {
     setData: vi.fn(),
     applyOptions: vi.fn(),
-    priceFormatter: vi.fn(),
+    priceFormatter: vi.fn(() => ({ format: (price: number) => price.toString() })),
     priceToCoordinate: vi.fn(),
     coordinateToPrice: vi.fn(),
     barsInLogicalRange: vi.fn(),
-    options: () => ({}) as any,
+    options: () => ({} as import('lightweight-charts').SeriesOptionsMap[TType]),
+    priceScale: vi.fn(() => ({ applyOptions: vi.fn() } as unknown)),
   };
 }
 

@@ -1,6 +1,8 @@
 import { CrosshairMode } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 
+export type { IChartApi, ISeriesApi };
+
 // 图表数据类型
 export interface ChartDataPoint {
   time: string; // YYYY-MM-DD 格式

@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
+import type { ChartDataPoint } from '../types/charts';
 
 interface StockChartHookReturn {
-  data: any[];
+  data: ChartDataPoint[];
   loading: boolean;
   error: string | null;
   refetch: () => void;
 }
 
 export function useStockChart(symbol?: string): StockChartHookReturn {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   const refetch = () => {
     // Mock implementation

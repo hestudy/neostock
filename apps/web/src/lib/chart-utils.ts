@@ -54,12 +54,14 @@ export function createChartInstance(config: ChartConfig): ChartInstance {
     crosshair: {
       mode: config.crosshair?.mode || CrosshairMode.Normal,
       vertLine: {
-        width: config.crosshair?.vertLine?.width || 1 as const,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      width: (config.crosshair?.vertLine?.width || 1) as any,
         color: config.crosshair?.vertLine?.color || '#758696',
         style: config.crosshair?.vertLine?.style || LineStyle.Dotted,
       },
       horzLine: {
-        width: config.crosshair?.horzLine?.width || 1 as const,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      width: (config.crosshair?.horzLine?.width || 1) as any,
         color: config.crosshair?.horzLine?.color || '#758696',
         style: config.crosshair?.horzLine?.style || LineStyle.Dotted,
       },
