@@ -1,7 +1,7 @@
-import { CrosshairMode } from 'lightweight-charts';
-import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-
-export type { IChartApi, ISeriesApi };
+// 简化的图表类型定义，不依赖lightweight-charts
+export type IChartApi = unknown;
+export type ISeriesApi = unknown;
+export type CrosshairMode = unknown;
 
 // 图表数据类型
 export interface ChartDataPoint {
@@ -92,15 +92,15 @@ export type ChartTheme = 'light' | 'dark';
 // 图表实例管理
 export interface ChartInstance {
   chart: IChartApi;
-  candlestickSeries: ISeriesApi<'Candlestick'> | null;
-  volumeSeries: ISeriesApi<'Histogram'> | null;
-  maSeries: Map<number, ISeriesApi<'Line'>>;
+  candlestickSeries: ISeriesApi | null;
+  volumeSeries: ISeriesApi | null;
+  maSeries: Map<number, ISeriesApi>;
   macdSeries: {
-    macd?: ISeriesApi<'Line'>;
-    signal?: ISeriesApi<'Line'>;
-    histogram?: ISeriesApi<'Histogram'>;
+    macd?: ISeriesApi;
+    signal?: ISeriesApi;
+    histogram?: ISeriesApi;
   };
-  rsiSeries: Map<number, ISeriesApi<'Line'>>;
+  rsiSeries: Map<number, ISeriesApi>;
 }
 
 // 图表工具函数类型

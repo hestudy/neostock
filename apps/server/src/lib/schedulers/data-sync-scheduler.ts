@@ -17,7 +17,7 @@ export interface SyncResult {
 }
 
 export class DataSyncScheduler {
-  private intervalId: Timer | null = null;
+  private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;
 
   constructor(

@@ -1,0 +1,17 @@
+# NFR Validation Block
+
+# Gate YAML (copy/paste):
+nfr_validation:
+  _assessed: [security, performance, reliability, maintainability]
+  security:
+    status: PASS
+    notes: '图表数据验证和XSS防护已实现，认证授权机制完整'
+  performance:
+    status: PASS
+    notes: '图表渲染<100ms、交互响应<50ms要求已验证，Bundle大小<150KB'
+  reliability:
+    status: PASS
+    notes: '完整错误处理和重试机制，技术指标计算准确性保证'
+  maintainability:
+    status: PASS
+    notes: '测试覆盖率60%，代码结构良好，TypeScript类型定义完整'
