@@ -12,16 +12,15 @@ import {
   defaultPerformanceConfig,
   destroyChart,
   applyTheme,
-  addTechnicalIndicator,
-  removeTechnicalIndicator,
   configureAxisFormatting,
   applyDarkThemeAxisFormatting,
   applyLightThemeAxisFormatting
 } from '../../lib/chart-utils';
+import { MultiIndicatorLayoutManager, type MultiIndicatorLayoutConfig } from '../../lib/multi-indicator-layout-manager';
 import { useTheme } from '../../hooks/use-theme';
 import { cn } from '../../lib/utils';
 
-interface KLineChartProps {
+interface MultiIndicatorKLineChartProps {
   /** 图表数据 */
   data: ChartDataPoint[];
   /** 图表宽度 */
@@ -38,6 +37,8 @@ interface KLineChartProps {
     macd?: boolean;
     rsi?: boolean;
   };
+  /** 多指标布局配置 */
+  layoutConfig?: Partial<MultiIndicatorLayoutConfig>;
   /** 主题 */
   theme?: 'light' | 'dark';
   /** 性能配置 */
@@ -54,23 +55,26 @@ interface KLineChartProps {
   onChartClick?: (dataPoint: ChartDataPoint | null) => void;
   /** 交叉线移动回调 */
   onCrosshairMove?: (dataPoint: ChartDataPoint | null) => void;
-  /** 技术指标可见性变化回调 */
-  onIndicatorVisibilityChange?: (indicators: { ma?: boolean; macd?: boolean; rsi?: boolean }) => void;
-  }
+    /** 布局变化回调 */
+  onLayoutChange?: (layout: MultiIndicatorLayoutConfig) => void;
+}
 
 /**
- * K线图组件
+ * 多指标K线图组件
  * 
- * 这是一个真实的K线图组件，集成了lightweight-charts库。
- * 提供完整的K线图功能，包括技术指标、交互操作等。
+ * 支持多种布局模式的多技术指标显示组件：
+ * - overlay: 指标叠加在主图上
+ * - stacked: 指标堆叠在主图下方
+ * - split: 指标在独立区域显示
  */
-export const KLineChart: React.FC<KLineChartProps> = ({
+export const MultiIndicatorKLineChart: React.FC<MultiIndicatorKLineChartProps> = ({
   data,
   width,
   height,
   indicators = [],
   showVolume = true,
   visibleIndicators = { ma: true, macd: true, rsi: true },
+  layoutConfig = {},
   theme: propTheme,
   performanceConfig = {},
   loading = false,
@@ -79,20 +83,29 @@ export const KLineChart: React.FC<KLineChartProps> = ({
   onDataUpdate,
   onChartClick,
   onCrosshairMove,
-  // onIndicatorVisibilityChange, // 暂时未使用
-  }) => {
+  onLayoutChange,
+}) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<ChartInstance | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const { theme: contextTheme } = useTheme();
-  
-  // 技术指标可见性状态
-  const [indicatorVisibility] = useState(visibleIndicators);
+  const layoutManagerRef = useRef<MultiIndicatorLayoutManager | null>(null);
   
   // 确定使用的主题
   const theme = (propTheme || contextTheme || 'light') as 'light' | 'dark';
 
-  
+  // 初始化布局管理器
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      layoutManagerRef.current = new MultiIndicatorLayoutManager(layoutConfig);
+      layoutManagerRef.current.init(chartContainerRef.current);
+    }
+
+    return () => {
+      layoutManagerRef.current?.destroy();
+    };
+  }, [layoutConfig]);
+
   // 初始化图表
   const initializeChart = useCallback(() => {
     if (!chartContainerRef.current || isInitialized) return;
@@ -143,11 +156,9 @@ export const KLineChart: React.FC<KLineChartProps> = ({
 
         // 双击重置视图
         instance.chart.subscribeCrosshairMove((param) => {
-          // 检测双击
           if (param && param.time) {
             const now = Date.now();
             if (instance.lastClickTime && (now - instance.lastClickTime < 300)) {
-              // 双击检测到，重置视图
               instance.chart.timeScale().resetTimeScale();
             }
             instance.lastClickTime = now;
@@ -167,111 +178,21 @@ export const KLineChart: React.FC<KLineChartProps> = ({
       const config = { ...defaultPerformanceConfig, ...performanceConfig };
       updateChartData(chartInstanceRef.current, data, config, showVolume);
       
-      // 添加技术指标（根据可见性控制）
-      if (indicators.length > 0) {
-        const indicatorConfig = {
-          ma: {
-            periods: [5, 10, 20, 60],
-            colors: ['#ff9800', '#4caf50', '#2196f3', '#9c27b0'],
-          },
-          macd: {
-            fastPeriod: 12,
-            slowPeriod: 26,
-            signalPeriod: 9,
-            colors: {
-              macd: '#2196f3',
-              signal: '#ff9800',
-              histogram: '#4caf50',
-            },
-          },
-          rsi: {
-            periods: [6, 12, 24],
-            overbought: 70,
-            oversold: 30,
-            colors: ['#2196f3', '#ff9800', '#4caf50'],
-          },
-        };
+      // 更新布局
+      if (layoutManagerRef.current) {
+        const visibleIndicatorTypes = Object.entries(visibleIndicators)
+          .filter(([, visible]) => visible)
+          .map(([type]) => type as 'ma' | 'macd' | 'rsi');
 
-        // 只添加可见的技术指标
-        if (indicatorVisibility.ma) {
-          indicators.forEach(() => {
-            const indicatorData = data.map(item => item);
-            if (chartInstanceRef.current) {
-              addTechnicalIndicator(chartInstanceRef.current, 'ma', indicatorData, indicatorConfig);
-            }
-          });
-        }
-
-        if (indicatorVisibility.macd) {
-          indicators.forEach(() => {
-            const indicatorData = data.map(item => item);
-            if (chartInstanceRef.current) {
-              addTechnicalIndicator(chartInstanceRef.current, 'macd', indicatorData, indicatorConfig);
-            }
-          });
-        }
-
-        if (indicatorVisibility.rsi) {
-          indicators.forEach(() => {
-            const indicatorData = data.map(item => item);
-            if (chartInstanceRef.current) {
-              addTechnicalIndicator(chartInstanceRef.current, 'rsi', indicatorData, indicatorConfig);
-            }
-          });
-        }
-      }
-      
-      // 触发数据更新回调
-      onDataUpdate?.(data);
-    } catch (err) {
-      console.error('Failed to update chart data:', err);
-    }
-  }, [data, indicators, performanceConfig, showVolume, indicatorVisibility, onDataUpdate]);
-
-  // 调整图表大小
-  const handleResize = useCallback(() => {
-    if (!chartInstanceRef.current) return;
-    
-    try {
-      resizeChart(chartInstanceRef.current, width, height);
-    } catch (err) {
-      console.error('Failed to resize chart:', err);
-    }
-  }, [width, height]);
-
-  // 处理技术指标可见性变化
-  useEffect(() => {
-    if (!chartInstanceRef.current || !isInitialized) return;
-
-    try {
-      const instance = chartInstanceRef.current;
-      
-      // 处理MA指标可见性
-      if (indicatorVisibility.ma) {
-        // MA可见，添加MA指标
+        layoutManagerRef.current.updateLayout(visibleIndicatorTypes, height);
+        
+        // 添加技术指标到布局
         if (indicators.length > 0) {
           const indicatorConfig = {
             ma: {
               periods: [5, 10, 20, 60],
               colors: ['#ff9800', '#4caf50', '#2196f3', '#9c27b0'],
             },
-          };
-          
-          indicators.forEach(() => {
-            const indicatorData = data.map(item => ({ ...item }));
-            addTechnicalIndicator(instance, 'ma', indicatorData, indicatorConfig);
-          });
-        }
-      } else {
-        // MA不可见，移除MA指标
-        removeTechnicalIndicator(instance, 'ma');
-      }
-
-      // 处理MACD指标可见性
-      if (indicatorVisibility.macd) {
-        // MACD可见，添加MACD指标
-        if (indicators.length > 0) {
-          const indicatorConfig = {
             macd: {
               fastPeriod: 12,
               slowPeriod: 26,
@@ -282,23 +203,6 @@ export const KLineChart: React.FC<KLineChartProps> = ({
                 histogram: '#4caf50',
               },
             },
-          };
-          
-          indicators.forEach(() => {
-            const indicatorData = data.map(item => ({ ...item }));
-            addTechnicalIndicator(instance, 'macd', indicatorData, indicatorConfig);
-          });
-        }
-      } else {
-        // MACD不可见，移除MACD指标
-        removeTechnicalIndicator(instance, 'macd');
-      }
-
-      // 处理RSI指标可见性
-      if (indicatorVisibility.rsi) {
-        // RSI可见，添加RSI指标
-        if (indicators.length > 0) {
-          const indicatorConfig = {
             rsi: {
               periods: [6, 12, 24],
               overbought: 70,
@@ -306,20 +210,46 @@ export const KLineChart: React.FC<KLineChartProps> = ({
               colors: ['#2196f3', '#ff9800', '#4caf50'],
             },
           };
-          
-          indicators.forEach(() => {
-            const indicatorData = data.map(item => ({ ...item }));
-            addTechnicalIndicator(instance, 'rsi', indicatorData, indicatorConfig);
+
+          visibleIndicatorTypes.forEach(type => {
+            if (layoutManagerRef.current) {
+              layoutManagerRef.current.addIndicatorToLayout(
+                chartInstanceRef.current!,
+                type,
+                indicators,
+                indicatorConfig
+              );
+            }
           });
         }
-      } else {
-        // RSI不可见，移除RSI指标
-        removeTechnicalIndicator(instance, 'rsi');
+      }
+      
+      // 触发数据更新回调
+      onDataUpdate?.(data);
+    } catch (err) {
+      console.error('Failed to update chart data:', err);
+    }
+  }, [data, indicators, performanceConfig, showVolume, visibleIndicators, height, onDataUpdate]);
+
+  // 调整图表大小
+  const handleResize = useCallback(() => {
+    if (!chartInstanceRef.current) return;
+    
+    try {
+      resizeChart(chartInstanceRef.current, width, height);
+      
+      // 更新布局
+      if (layoutManagerRef.current) {
+        const visibleIndicatorTypes = Object.entries(visibleIndicators)
+          .filter(([, visible]) => visible)
+          .map(([type]) => type as 'ma' | 'macd' | 'rsi');
+        
+        layoutManagerRef.current.updateLayout(visibleIndicatorTypes, height);
       }
     } catch (err) {
-      console.error('Failed to update indicator visibility:', err);
+      console.error('Failed to resize chart:', err);
     }
-  }, [indicatorVisibility, indicators, data, isInitialized]);
+  }, [width, height, visibleIndicators]);
 
   // 清理图表资源
   const cleanupChart = useCallback(() => {
@@ -333,6 +263,67 @@ export const KLineChart: React.FC<KLineChartProps> = ({
       }
     }
   }, []);
+
+  // 处理技术指标可见性变化
+  useEffect(() => {
+    if (!chartInstanceRef.current || !isInitialized) return;
+
+    try {
+      const visibleIndicatorTypes = Object.entries(visibleIndicators)
+        .filter(([, visible]) => visible)
+        .map(([type]) => type as 'ma' | 'macd' | 'rsi');
+
+      // 更新布局
+      if (layoutManagerRef.current) {
+        layoutManagerRef.current.updateLayout(visibleIndicatorTypes, height);
+        
+        // 重新添加可见的技术指标
+        if (indicators.length > 0) {
+          const indicatorConfig = {
+            ma: {
+              periods: [5, 10, 20, 60],
+              colors: ['#ff9800', '#4caf50', '#2196f3', '#9c27b0'],
+            },
+            macd: {
+              fastPeriod: 12,
+              slowPeriod: 26,
+              signalPeriod: 9,
+              colors: {
+                macd: '#2196f3',
+                signal: '#ff9800',
+                histogram: '#4caf50',
+              },
+            },
+            rsi: {
+              periods: [6, 12, 24],
+              overbought: 70,
+              oversold: 30,
+              colors: ['#2196f3', '#ff9800', '#4caf50'],
+            },
+          };
+
+          visibleIndicatorTypes.forEach(type => {
+            layoutManagerRef.current?.addIndicatorToLayout(
+              chartInstanceRef.current!,
+              type,
+              indicators,
+              indicatorConfig
+            );
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update indicator visibility:', err);
+    }
+  }, [visibleIndicators, indicators, height, isInitialized]);
+
+  // 处理布局配置变化
+  useEffect(() => {
+    if (layoutManagerRef.current) {
+      layoutManagerRef.current.updateConfig(layoutConfig);
+      onLayoutChange?.(layoutManagerRef.current['config']);
+    }
+  }, [layoutConfig, onLayoutChange]);
 
   // 初始化效果
   useEffect(() => {
@@ -368,60 +359,38 @@ export const KLineChart: React.FC<KLineChartProps> = ({
     }
   }, [width, height, isInitialized, handleResize]);
 
-  // 渲染图表容器
   return (
     <div
       ref={chartContainerRef}
       className={cn(
-        'relative w-full h-full bg-background border border-border rounded-lg overflow-hidden',
+        'relative w-full h-full',
+        'multi-indicator-chart-container',
         className
       )}
-      style={{ width, height }}
       data-theme={theme}
-      data-loading={loading}
-      data-error={!!error}
+      data-layout-mode={layoutConfig.layoutMode || 'overlay'}
     >
       {/* 加载状态 */}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-          <div className="flex flex-col items-center space-y-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="text-sm text-muted-foreground">加载图表数据...</span>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">加载图表数据...</p>
           </div>
         </div>
       )}
-
+      
       {/* 错误状态 */}
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-          <div className="flex flex-col items-center space-y-2 text-destructive">
-            <span className="text-sm font-medium">图表加载失败</span>
-            <span className="text-xs text-muted-foreground">{error}</span>
+          <div className="text-center text-destructive">
+            <p className="text-sm font-medium">图表加载失败</p>
+            <p className="text-xs">{error}</p>
           </div>
-        </div>
-      )}
-
-      {/* 空数据状态 */}
-      {!loading && !error && data.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-2 text-muted-foreground">
-            <span className="text-sm">暂无数据</span>
-            <span className="text-xs">请选择有效的股票代码</span>
-          </div>
-        </div>
-      )}
-
-      {/* 图表信息提示 */}
-      {!loading && !error && data.length > 0 && (
-        <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded z-10">
-          数据点: {data.length} | 技术指标: {indicators.length}
         </div>
       )}
     </div>
   );
 };
 
-KLineChart.displayName = 'KLineChart';
-
-// 导出接口类型
-export type { KLineChartProps };
+MultiIndicatorKLineChart.displayName = 'MultiIndicatorKLineChart';
