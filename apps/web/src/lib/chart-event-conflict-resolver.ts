@@ -5,7 +5,7 @@ import React, { type RefObject } from 'react';
  * 图表事件冲突解决器
  */
 export class ChartEventConflictResolver {
-  private isChartInteracting = false;
+  public isChartInteracting = false;
   private touchStartY = 0;
   private touchStartX = 0;
   private lastTouchTime = 0;
@@ -275,7 +275,7 @@ export function useChartEventConflictResolver(
   return {
     lockInteraction: () => resolverRef.current?.lockChartInteraction(),
     unlockInteraction: () => resolverRef.current?.unlockChartInteraction(),
-    isInteracting: () => (resolverRef.current as any)?.isChartInteracting || false,
+    isInteracting: () => resolverRef.current?.isChartInteracting || false,
   };
 }
 

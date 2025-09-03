@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MemoryManager, defaultMemoryConfig } from '../memory-management';
+import type { ChartInstance } from '../../types/charts';
 
 // 导入测试设置
 import '../../test-setup';
@@ -70,7 +71,7 @@ describe('Memory Management - 内存管理', () => {
     });
 
     it('应该正确处理图表实例注册', () => {
-      const mockChart: any = {
+      const mockChart = {
         chart: { id: 'test-chart' },
         dataLength: 100,
         indicatorLength: 50,
@@ -78,13 +79,13 @@ describe('Memory Management - 内存管理', () => {
       };
 
       // 注册图表实例
-      memoryManager.registerChartInstance(mockChart);
+      memoryManager.registerChartInstance(mockChart as unknown as ChartInstance);
       
       let stats = memoryManager.getMemoryStats();
       expect(stats.activeChartCount).toBe(1);
 
       // 注销图表实例
-      memoryManager.unregisterChartInstance(mockChart);
+      memoryManager.unregisterChartInstance(mockChart as unknown as ChartInstance);
       
       stats = memoryManager.getMemoryStats();
       expect(stats.activeChartCount).toBe(0);

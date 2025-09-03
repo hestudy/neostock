@@ -3,7 +3,8 @@ import type {
   ChartDataPoint, 
   TechnicalIndicatorData, 
   ChartInstance, 
-  PerformanceConfig 
+  PerformanceConfig,
+  PerformanceMetrics 
 } from '../../types/charts';
 import { 
   createChartInstance, 
@@ -57,7 +58,7 @@ interface OptimizedMultiIndicatorKLineChartProps {
   /** 交叉线移动回调 */
   onCrosshairMove?: (dataPoint: ChartDataPoint | null) => void;
     /** 性能指标回调 */
-  onPerformanceMetrics?: (metrics: { renderTime: number; memoryUsage: number; fps: number }) => void;
+  onPerformanceMetrics?: (metrics: PerformanceMetrics) => void;
 }
 
 /**
@@ -95,14 +96,7 @@ export const OptimizedMultiIndicatorKLineChart: React.FC<OptimizedMultiIndicator
   const layoutManagerRef = useRef<OptimizedMultiIndicatorLayoutManager | null>(null);
   const scrollPositionRef = useRef(0);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const [performanceMetrics, setPerformanceMetrics] = useState<{ 
-    renderTime: number; 
-    memoryUsage: number; 
-    fps: number;
-    cacheHitRate?: number;
-    visibleIndicators?: number;
-    totalIndicators?: number;
-  } | null>(null);
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
   
   // 确定使用的主题
   const theme = (propTheme || contextTheme || 'light') as 'light' | 'dark';
@@ -410,8 +404,8 @@ export const OptimizedMultiIndicatorKLineChart: React.FC<OptimizedMultiIndicator
     const interval = setInterval(() => {
       if (layoutManagerRef.current) {
         const metrics = layoutManagerRef.current.getPerformanceMetrics();
-        setPerformanceMetrics(metrics as any);
-        onPerformanceMetrics?.(metrics as any);
+        setPerformanceMetrics(metrics);
+        onPerformanceMetrics?.(metrics);
         
         // 自动性能优化
         layoutManagerRef.current.optimizePerformance();

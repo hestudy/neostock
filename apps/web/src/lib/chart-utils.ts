@@ -1,5 +1,6 @@
 // 真实的图表工具函数，集成lightweight-charts
-import { createChart } from 'lightweight-charts';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { createChart, LineStyle, ColorType } from 'lightweight-charts';
 import type { 
   ChartConfig, 
   ChartDataPoint, 
@@ -36,24 +37,24 @@ export function createChartInstance(config: ChartConfig): ChartInstance {
     width,
     height,
     layout: {
-      background: { type: 'solid' as any, color: '#ffffff' },
+      background: { type: ColorType.Solid, color: '#ffffff' },
       textColor: '#333333',
     },
     grid: {
-      vertLines: { color: '#e0e0e0', style: 0 as any },
-      horzLines: { color: '#e0e0e0', style: 0 as any },
+      vertLines: { color: '#e0e0e0', style: LineStyle.Solid },
+      horzLines: { color: '#e0e0e0', style: LineStyle.Solid },
     },
     crosshair: {
       mode: 0,
       vertLine: {
         width: 1,
         color: '#758696',
-        style: 3 as any,
+        style: LineStyle.Dashed,
       },
       horzLine: {
         width: 1,
         color: '#758696',
-        style: 3 as any,
+        style: LineStyle.Dashed,
       },
     },
     handleScroll: {
@@ -145,7 +146,7 @@ export function updateChartData(
   if (cleanedData.length === 0) return;
 
   // 更新蜡烛图数据
-  instance.candlestickSeries.setData(cleanedData);
+  instance.candlestickSeries.setData(cleanedData as any);
 
   // 更新成交量数据
   if (showVolume && instance.volumeSeries) {
@@ -183,10 +184,10 @@ export function addTechnicalIndicator(
       if (config.ma?.periods) {
         config.ma.periods.forEach((period, index) => {
           const maData = data
-            .filter(item => (item as any)[`ma${period}`] !== undefined)
+            .filter(item => item[`ma${period}` as keyof TechnicalIndicatorData] !== undefined)
             .map(item => ({
               time: new Date(item.time).getTime() / 1000,
-              value: (item as any)[`ma${period}`]!,
+              value: item[`ma${period}` as keyof TechnicalIndicatorData] as number,
             }));
           
           const maSeries = instance.chart.addSeries('line', {
@@ -250,10 +251,10 @@ export function addTechnicalIndicator(
       if (config.rsi?.periods && config.rsi?.colors) {
         config.rsi.periods.forEach((period, index) => {
           const rsiData = data
-            .filter(item => (item as any)[`rsi_${period}`] !== undefined)
+            .filter(item => item[`rsi_${period}` as keyof TechnicalIndicatorData] !== undefined)
             .map(item => ({
               time: new Date(item.time).getTime() / 1000,
-              value: (item as any)[`rsi_${period}`]!,
+              value: item[`rsi_${period}` as keyof TechnicalIndicatorData] as number,
             }));
           
           const rsiSeries = instance.chart.addSeries('line', {
@@ -392,12 +393,12 @@ export function applyTheme(instance: ChartInstance, theme: ChartTheme): void {
       textColor: themeConfig.grid.vertLines.color,
     },
     grid: {
-      vertLines: themeConfig.grid.vertLines as any,
-      horzLines: themeConfig.grid.horzLines as any,
+      vertLines: themeConfig.grid.vertLines,
+      horzLines: themeConfig.grid.horzLines,
     },
     crosshair: {
-      vertLine: themeConfig.crosshair.vertLine as any,
-      horzLine: themeConfig.crosshair.horzLine as any,
+      vertLine: themeConfig.crosshair.vertLine,
+      horzLine: themeConfig.crosshair.horzLine,
     },
   });
   
@@ -607,26 +608,26 @@ export function createMobileChartInstance(config: ChartConfig): ChartInstance {
     width,
     height,
     layout: {
-      background: { type: 'solid' as any, color: '#ffffff' },
+      background: { type: ColorType.Solid, color: '#ffffff' },
       textColor: '#333333',
       fontSize: 12, // 移动端减小字体
     },
     grid: {
-      vertLines: { color: '#e0e0e0', style: 0 as any },
-      horzLines: { color: '#e0e0e0', style: 0 as any },
+      vertLines: { color: '#e0e0e0', style: LineStyle.Solid },
+      horzLines: { color: '#e0e0e0', style: LineStyle.Solid },
     },
     crosshair: {
       mode: 0,
       vertLine: {
         width: 1,
         color: '#758696',
-        style: 3 as any,
+        style: LineStyle.Dashed,
         labelBackgroundColor: '#758696',
       },
       horzLine: {
         width: 1,
         color: '#758696',
-        style: 3 as any,
+        style: LineStyle.Dashed,
         labelBackgroundColor: '#758696',
       },
     },

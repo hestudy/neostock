@@ -312,10 +312,10 @@ export class MultiIndicatorLayoutManager {
         if (config.ma?.periods && config.ma?.colors) {
           config.ma.periods.forEach((period, index) => {
             const maData = data
-              .filter(item => (item as any)[`ma${period}`] !== undefined)
+              .filter(item => item[`ma${period}` as keyof TechnicalIndicatorData] !== undefined)
               .map(item => ({
                 time: new Date(item.time).getTime() / 1000,
-                value: (item as any)[`ma${period}`]!,
+                value: item[`ma${period}` as keyof TechnicalIndicatorData] as number,
               }));
             
             const maSeries = instance.chart.addSeries('line', {
@@ -390,10 +390,10 @@ export class MultiIndicatorLayoutManager {
         if (config.rsi?.periods && config.rsi?.colors) {
           config.rsi.periods.forEach((period, index) => {
             const rsiData = data
-              .filter(item => (item as any)[`rsi_${period}`] !== undefined)
+              .filter(item => item[`rsi_${period}` as keyof TechnicalIndicatorData] !== undefined)
               .map(item => ({
                 time: new Date(item.time).getTime() / 1000,
-                value: (item as any)[`rsi_${period}`]!,
+                value: item[`rsi_${period}` as keyof TechnicalIndicatorData] as number,
               }));
             
             const rsiSeries = instance.chart.addSeries('line', {

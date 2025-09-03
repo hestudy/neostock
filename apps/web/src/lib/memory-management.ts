@@ -301,7 +301,7 @@ export class MemoryManager {
   /**
    * 执行清理
    */
-  private performCleanup(): void {
+  public performCleanup(): void {
     // 按优先级排序
     const sortedStrategies = this.cleanupStrategies.sort((a, b) => {
       const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };

@@ -508,7 +508,5 @@ const RSIConfigPanel: React.FC<RSIConfigPanelProps> = ({ config, onChange }) => 
   );
 };
 
-// 获取默认配置 - 移动到单独文件以避免 react-refresh 警告
-export { getDefaultConfig } from './technical-indicator-defaults';
 
 TechnicalIndicatorConfig.displayName = 'TechnicalIndicatorConfig';

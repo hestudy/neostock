@@ -36,18 +36,24 @@ export function useStockChartData({
 }: UseStockChartDataOptions) {
   return useQuery({
     queryKey: ['stocks', 'daily', ts_code, start_date, end_date],
-    queryFn: () => (trpc as any).stocks?.getStockDailyData?.query?.({
-      ts_code,
-      start_date,
-      end_date
-    }) || Promise.resolve([]),
+    queryFn: async () => {
+      const stocksRouter = trpc.stocks as { getStockDailyData?: { query?: (params: { ts_code: string; start_date?: string; end_date?: string }) => Promise<StockDailyData[]> } };
+      if (!stocksRouter?.getStockDailyData?.query) {
+        return [];
+      }
+      return await stocksRouter.getStockDailyData.query({
+        ts_code,
+        start_date,
+        end_date
+      });
+    },
     enabled: enabled && !!ts_code,
     refetchInterval,
     staleTime: 5 * 60 * 1000, // 5分钟缓存
     gcTime: 30 * 60 * 1000, // 30分钟保持
-    select: (data: any) => {
+    select: (data: StockDailyData[]) => {
       // 转换数据格式以适配图表组件
-      return (data || []).map((item: any) => ({
+      return (data || []).map((item: StockDailyData) => ({
         time: item.trade_date,
         open: item.open,
         high: item.high,
@@ -97,18 +103,23 @@ export function useTechnicalIndicators({
     queryKey: ['stocks', 'indicators', ts_code, indicators, start_date, end_date],
     queryFn: async () => {
       // 首先获取基础数据
-      const dailyData = await (trpc as any).stocks?.getStockDailyData?.query?.({
+      const stocksRouter = trpc.stocks as { getStockDailyData?: { query?: (params: { ts_code: string; start_date?: string; end_date?: string }) => Promise<StockDailyData[]> } };
+      if (!stocksRouter?.getStockDailyData?.query) {
+        return { chartData: [], technicalIndicators: [] };
+      }
+      
+      const dailyData = await stocksRouter.getStockDailyData.query({
         ts_code,
         start_date,
         end_date
-      }) || [];
+      });
 
       if (!dailyData || dailyData.length === 0) {
         return [] as TechnicalIndicatorsData[];
       }
 
       // 转换数据格式
-      const chartData: ChartDataPoint[] = (dailyData as any[]).map((item: any) => ({
+      const chartData: ChartDataPoint[] = dailyData.map((item: StockDailyData) => ({
         time: item.trade_date,
         open: item.open,
         high: item.high,
@@ -208,10 +219,10 @@ export function useStockChart(symbol?: string): StockChartHookReturn {
 
   return {
     data: dailyData,
-    technicalIndicators: technicalIndicators.map(indicator => ({
+    technicalIndicators: Array.isArray(technicalIndicators) ? technicalIndicators.map(indicator => ({
       ...indicator,
-      time: (indicator as any).time || ''
-    })) as TechnicalIndicatorData[],
+      time: indicator.trade_date || ''
+    })) as TechnicalIndicatorData[] : [],
     loading: isLoading,
     error,
     refetch

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getDefaultConfig, type IndicatorConfig } from '../technical-indicator-config';
+import { getDefaultConfig, type IndicatorConfig } from '../technical-indicator-defaults';
 
 // 导入测试设置
 import '../../../test-setup';

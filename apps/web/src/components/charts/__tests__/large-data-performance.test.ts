@@ -192,7 +192,8 @@ describe('Large Data Performance - 大数据量性能测试', () => {
 
   describe('内存使用优化', () => {
     it('应该在大数据量下优化内存使用', () => {
-      const initialMemory = (performance as any).memory ? (performance as any).memory.usedJSHeapSize : 0;
+      const performanceWithMemory = performance as unknown as { memory?: { usedJSHeapSize: number } };
+      const initialMemory = performanceWithMemory.memory ? performanceWithMemory.memory.usedJSHeapSize : 0;
       
       // 生成并处理大数据
       const largeData = Array.from({ length: 20000 }, (_, i) => ({
@@ -222,14 +223,14 @@ describe('Large Data Performance - 大数据量性能测试', () => {
         
         if (cached) {
           // 处理缓存数据
-          void (cached as any[]).map((item: Record<string, unknown>) => ({
+          void (cached as Record<string, unknown>[]).map((item: Record<string, unknown>) => ({
             ...item,
             processed: true,
           }));
         }
       }
 
-      const finalMemory = (performance as any).memory ? (performance as any).memory.usedJSHeapSize : 0;
+      const finalMemory = performanceWithMemory.memory ? performanceWithMemory.memory.usedJSHeapSize : 0;
       const memoryIncrease = finalMemory - initialMemory;
       
       console.log(`内存增长: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);

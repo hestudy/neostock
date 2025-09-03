@@ -306,12 +306,12 @@ describe('Chart Performance Optimization - 图表性能优化', () => {
         width: string;
         height: string;
       };
-      appendChild: any;
-      removeChild: any;
+      appendChild: (child: Element) => void;
+      removeChild: (child: Element) => void;
       querySelector: (selector: string) => Element | null;
       querySelectorAll: (selector: string) => NodeListOf<Element>;
-      getAttribute: any;
-      setAttribute: any;
+      getAttribute: (name: string) => string | null;
+      setAttribute: (name: string, value: string) => void;
     };
 
     beforeEach(() => {
@@ -332,7 +332,7 @@ describe('Chart Performance Optimization - 图表性能优化', () => {
           entries: vi.fn(),
           keys: vi.fn(),
           values: vi.fn()
-        } as any)),
+        } as unknown as NodeListOf<Element>)),
         getAttribute: vi.fn(),
         setAttribute: vi.fn(),
       };
@@ -341,7 +341,7 @@ describe('Chart Performance Optimization - 图表性能优化', () => {
       global.document = {
         createElement: vi.fn().mockReturnValue(mockContainer),
         body: { appendChild: vi.fn() },
-      } as any as Document;
+      } as unknown as Document;
 
       layoutManager = new OptimizedMultiIndicatorLayoutManager();
     });
@@ -376,8 +376,8 @@ describe('Chart Performance Optimization - 图表性能优化', () => {
       };
 
       const optimizedLayout = new OptimizedMultiIndicatorLayoutManager(config);
-      expect((optimizedLayout as any)['config'].virtualization?.visibleDataPoints).toBe(100);
-      expect((optimizedLayout as any)['config'].enablePerformanceMonitoring).toBe(true);
+      expect((optimizedLayout as unknown as { config: { virtualization?: { visibleDataPoints: number } } })['config'].virtualization?.visibleDataPoints).toBe(100);
+      expect((optimizedLayout as unknown as { config: { enablePerformanceMonitoring: boolean } })['config'].enablePerformanceMonitoring).toBe(true);
       optimizedLayout.destroy();
     });
 

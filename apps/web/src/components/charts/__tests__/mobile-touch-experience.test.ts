@@ -22,7 +22,7 @@ describe('Mobile Touch Experience - 移动端触摸操作体验测试', () => {
 
   // Helper function to create mock TouchEvent
   const createMockTouchEvent = (touches: Array<{ clientX: number; clientY: number }>): Partial<TouchEvent> => ({
-    touches: touches as any as TouchList,
+    touches: touches as unknown as TouchList,
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
     target: {} as Element,
@@ -142,7 +142,7 @@ describe('Mobile Touch Experience - 移动端触摸操作体验测试', () => {
         connection: {
           effectiveType: '4g',
         },
-      } as any as Navigator;
+      } as unknown as Navigator;
       
       // 保存原始navigator
       const originalNavigator = global.navigator;

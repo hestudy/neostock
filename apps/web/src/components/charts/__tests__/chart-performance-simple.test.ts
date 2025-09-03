@@ -127,12 +127,12 @@ describe('Chart Performance Optimization - Simplified Tests', () => {
         width: string;
         height: string;
       };
-      appendChild: any;
-      removeChild: any;
+      appendChild: (child: Element) => void;
+      removeChild: (child: Element) => void;
       querySelector: (selector: string) => Element | null;
       querySelectorAll: (selector: string) => NodeListOf<Element>;
-      getAttribute: any;
-      setAttribute: any;
+      getAttribute: (name: string) => string | null;
+      setAttribute: (name: string, value: string) => void;
     };
 
     beforeEach(() => {
@@ -153,7 +153,7 @@ describe('Chart Performance Optimization - Simplified Tests', () => {
           entries: vi.fn(),
           keys: vi.fn(),
           values: vi.fn()
-        } as any),
+        } as unknown as NodeListOf<Element>),
         getAttribute: () => null,
         setAttribute: () => {},
       };
@@ -162,7 +162,7 @@ describe('Chart Performance Optimization - Simplified Tests', () => {
       global.document = {
         createElement: () => mockContainer,
         body: { appendChild: () => {} },
-      } as any as Document;
+      } as unknown as Document;
 
       layoutManager = new OptimizedMultiIndicatorLayoutManager();
     });
@@ -197,8 +197,8 @@ describe('Chart Performance Optimization - Simplified Tests', () => {
       };
 
       const optimizedLayout = new OptimizedMultiIndicatorLayoutManager(config);
-      expect((optimizedLayout as any)['config'].virtualization?.visibleDataPoints).toBe(100);
-      expect((optimizedLayout as any)['config'].enablePerformanceMonitoring).toBe(true);
+      expect((optimizedLayout as unknown as { config: { virtualization?: { visibleDataPoints: number } } })['config'].virtualization?.visibleDataPoints).toBe(100);
+      expect((optimizedLayout as unknown as { config: { enablePerformanceMonitoring: boolean } })['config'].enablePerformanceMonitoring).toBe(true);
       optimizedLayout.destroy();
     });
 
@@ -307,17 +307,3 @@ describe('Chart Performance Optimization - Simplified Tests', () => {
   });
 });
 
-// 简单的spy函数
-function spyOn(obj: Record<string, unknown>, methodName: string) {
-  const originalMethod = obj[methodName];
-  const spy = vi.fn();
-  obj[methodName] = spy;
-  
-  return {
-    called: spy.mock.calls.length > 0,
-    calls: spy.mock.calls,
-    restore: () => {
-      obj[methodName] = originalMethod;
-    }
-  };
-}

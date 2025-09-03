@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MultiIndicatorLayoutManager } from '../../../lib/multi-indicator-layout-manager';
-import type { ChartInstance, TechnicalIndicatorData, IChartApi, ISeriesApi, IndicatorLayoutInfo } from '../../../types/charts';
+import type { ChartInstance, TechnicalIndicatorData, IChartApi, ISeriesApi } from '../../../types/charts';
 
 // 导入测试设置
 import '../../../test-setup';
@@ -15,20 +15,21 @@ const createMockDocument = () => {
       flexDirection: '',
       gap: '',
       gridTemplateRows: '',
-    } as any,
+    } as CSSStyleDeclaration,
     getAttribute: vi.fn(),
     setAttribute: vi.fn(),
     removeChild: vi.fn(),
     appendChild: vi.fn(),
     querySelector: vi.fn(),
-    querySelectorAll: vi.fn(() => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    querySelectorAll: vi.fn((_selector?: string) => ({
       length: 0,
       item: vi.fn(),
       forEach: vi.fn(),
       entries: vi.fn(),
       keys: vi.fn(),
       values: vi.fn()
-    } as any)),
+    } as unknown as NodeListOf<Element>)),
     parentNode: {
       removeChild: vi.fn(),
     },
@@ -42,8 +43,8 @@ const createMockDocument = () => {
 
 describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
   let layoutManager: MultiIndicatorLayoutManager;
-  let mockContainer: any;
-  let createElementMock: any;
+  let mockContainer: ReturnType<typeof createMockDocument>['mockContainer'];
+  let createElementMock: ReturnType<typeof createMockDocument>['createElement'];
   let mockChartInstance: ChartInstance;
 
   // 模拟技术指标数据
@@ -116,7 +117,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
         appendChild: vi.fn(),
         removeChild: vi.fn(),
       },
-    } as any as Document;
+    } as unknown as Document;
     
     layoutManager = new MultiIndicatorLayoutManager();
     mockChartInstance = createMockChartInstance();
@@ -154,7 +155,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('初始化和布局设置', () => {
     it('应该正确初始化容器', () => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       
       expect(layoutManager['containerElement']).toBe(mockContainer);
       expect(mockContainer.style.display).toBe('flex');
@@ -162,7 +163,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
     });
 
     it('应该为叠加模式设置正确的样式', () => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       
       expect(mockContainer.style.display).toBe('flex');
       expect(mockContainer.style.flexDirection).toBe('column');
@@ -171,7 +172,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该为堆叠模式设置正确的样式', () => {
       const stackedLayout = new MultiIndicatorLayoutManager({ layoutMode: 'stacked' });
-      stackedLayout.init(mockContainer);
+      stackedLayout.init(mockContainer as unknown as HTMLElement);
       
       expect(mockContainer.style.display).toBe('flex');
       expect(mockContainer.style.flexDirection).toBe('column');
@@ -180,7 +181,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该为分割模式设置正确的样式', () => {
       const splitLayout = new MultiIndicatorLayoutManager({ layoutMode: 'split' });
-      splitLayout.init(mockContainer);
+      splitLayout.init(mockContainer as unknown as HTMLElement);
       
       expect(mockContainer.style.display).toBe('grid');
       expect(mockContainer.style.gridTemplateRows).toBe('70% 30%');
@@ -190,7 +191,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('布局计算', () => {
     beforeEach(() => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
     });
 
     it('应该正确计算叠加模式布局', () => {
@@ -211,7 +212,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该正确计算堆叠模式布局', () => {
       const stackedLayout = new MultiIndicatorLayoutManager({ layoutMode: 'stacked' });
-      stackedLayout.init(mockContainer);
+      stackedLayout.init(mockContainer as unknown as HTMLElement);
       
       const indicators = ['ma', 'macd'] as ('ma' | 'macd' | 'rsi')[] as ('ma' | 'macd' | 'rsi')[];
       const containerHeight = 600;
@@ -237,7 +238,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该正确计算分割模式布局', () => {
       const splitLayout = new MultiIndicatorLayoutManager({ layoutMode: 'split' });
-      splitLayout.init(mockContainer);
+      splitLayout.init(mockContainer as unknown as HTMLElement);
       
       const indicators = ['ma', 'macd', 'rsi'] as ('ma' | 'macd' | 'rsi')[] as ('ma' | 'macd' | 'rsi')[];
       const containerHeight = 600;
@@ -262,7 +263,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
     it('应该限制最大显示指标数量', () => {
       const indicators = ['ma', 'macd', 'rsi'] as ('ma' | 'macd' | 'rsi')[] as ('ma' | 'macd' | 'rsi')[];
       const limitedLayout = new MultiIndicatorLayoutManager({ maxVisibleIndicators: 2 });
-      limitedLayout.init(mockContainer);
+      limitedLayout.init(mockContainer as unknown as HTMLElement);
       
       const layouts = limitedLayout.calculateIndicatorLayout(indicators, 600);
       
@@ -278,7 +279,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('布局更新', () => {
     beforeEach(() => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
     });
 
     it('应该正确更新布局', () => {
@@ -321,7 +322,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('指标容器管理', () => {
     beforeEach(() => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       layoutManager.updateLayout(['ma', 'macd'] as ('ma' | 'macd' | 'rsi')[], 600);
     });
 
@@ -333,7 +334,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该为堆叠模式创建专用容器', () => {
       const stackedLayout = new MultiIndicatorLayoutManager({ layoutMode: 'stacked' });
-      stackedLayout.init(mockContainer);
+      stackedLayout.init(mockContainer as unknown as HTMLElement);
       stackedLayout.updateLayout(['ma'], 600);
       
       const container = stackedLayout.getIndicatorContainer('ma');
@@ -345,7 +346,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该为分割模式创建专用容器', () => {
       const splitLayout = new MultiIndicatorLayoutManager({ layoutMode: 'split' });
-      splitLayout.init(mockContainer);
+      splitLayout.init(mockContainer as unknown as HTMLElement);
       splitLayout.updateLayout(['macd'], 600);
       
       const container = splitLayout.getIndicatorContainer('macd');
@@ -363,7 +364,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('配置更新', () => {
     beforeEach(() => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
     });
 
     it('应该更新布局模式', () => {
@@ -395,7 +396,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('添加技术指标', () => {
     beforeEach(() => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       layoutManager.updateLayout(['ma'], 600);
     });
 
@@ -479,7 +480,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('销毁和清理', () => {
     beforeEach(() => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       layoutManager.updateLayout(['ma', 'macd'] as ('ma' | 'macd' | 'rsi')[], 600);
     });
 
@@ -512,7 +513,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
   describe('边界情况处理', () => {
     it('应该处理无效的容器高度', () => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       
       const layouts = layoutManager.calculateIndicatorLayout(['ma'], 0);
       
@@ -521,7 +522,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
     });
 
     it('应该处理负数的容器高度', () => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       
       const layouts = layoutManager.calculateIndicatorLayout(['ma'], -100);
       
@@ -531,7 +532,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
     });
 
     it('应该处理非常大的容器高度', () => {
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       
       const layouts = layoutManager.calculateIndicatorLayout(['ma'], 10000);
       
@@ -544,7 +545,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
     it('应该避免不必要的布局重新计算', () => {
       const spy = vi.spyOn(layoutManager, 'calculateIndicatorLayout');
       
-      layoutManager.init(mockContainer);
+      layoutManager.init(mockContainer as unknown as HTMLElement);
       
       // 相同的配置应该缓存结果
       layoutManager.updateLayout(['ma'], 600);
@@ -555,7 +556,7 @@ describe('MultiIndicatorLayoutManager - 多指标布局管理器', () => {
 
     it('应该限制指标容器创建', () => {
       const splitLayout = new MultiIndicatorLayoutManager({ layoutMode: 'split' });
-      splitLayout.init(mockContainer);
+      splitLayout.init(mockContainer as unknown as HTMLElement);
       
       // 多次获取相同指标的容器应该返回同一个实例
       splitLayout.updateLayout(['ma'], 600);

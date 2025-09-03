@@ -1,6 +1,18 @@
 // 移动端性能优化工具
 import type { PerformanceConfig } from '../types/charts';
 
+interface CacheItem {
+  value: unknown;
+  timestamp: number;
+  ttl: number;
+}
+
+interface DeviceMemoryInfo {
+  deviceMemory?: number;
+  totalJSHeapSize?: number;
+  usedJSHeapSize?: number;
+}
+
 /**
  * 移动端性能配置
  */
@@ -62,7 +74,7 @@ export function getNetworkBasedConfig(): PerformanceConfig {
  */
 export class MemoryOptimizer {
   private static instance: MemoryOptimizer;
-  private cache = new Map<string, unknown>();
+  private cache = new Map<string, CacheItem>();
   private maxCacheSize = 50;
 
   static getInstance(): MemoryOptimizer {
@@ -100,12 +112,12 @@ export class MemoryOptimizer {
     const item = this.cache.get(key);
     if (!item) return null;
 
-    if (Date.now() - (item as any).timestamp > (item as any).ttl) {
+    if (Date.now() - item.timestamp > item.ttl) {
       this.cache.delete(key);
       return null;
     }
 
-    return (item as any).value;
+    return item.value;
   }
 
   /**
@@ -114,7 +126,7 @@ export class MemoryOptimizer {
   private cleanup(): void {
     const now = Date.now();
     for (const [key, item] of this.cache.entries()) {
-      if (now - (item as any).timestamp > (item as any).ttl) {
+      if (now - item.timestamp > item.ttl) {
         this.cache.delete(key);
       }
     }
@@ -279,8 +291,9 @@ export class ChartPerformanceOptimizer {
     const isLowEnd = hardwareConcurrency <= 2;
     
     let memoryInfo;
-    if ((globalThis as any)?.device?.memory) {
-      memoryInfo = (globalThis as any).device.memory;
+    const globalWithDevice = globalThis as { device?: { memory: DeviceMemoryInfo } };
+    if (globalWithDevice?.device?.memory) {
+      memoryInfo = globalWithDevice.device.memory;
     }
 
     return {

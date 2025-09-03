@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TechnicalIndicatorConfig, getDefaultConfig, type IndicatorConfig } from '../technical-indicator-config';
+import { TechnicalIndicatorConfig, type IndicatorConfig } from '../technical-indicator-config';
+import { getDefaultConfig } from '../technical-indicator-defaults';
 
 // 导入测试设置
 import '../../../test-setup';
@@ -382,7 +383,7 @@ describe('TechnicalIndicatorConfig - 技术指标配置', () => {
         ...defaultConfig,
         ma: { ...defaultConfig.ma, enabled: false },
         macd: { ...defaultConfig.macd, fastPeriod: 15 },
-      } as any;
+      } as IndicatorConfig;
 
       render(
         <TechnicalIndicatorConfig
@@ -459,7 +460,7 @@ describe('TechnicalIndicatorConfig - 技术指标配置', () => {
       const newConfig = {
         ...defaultConfig,
         ma: { ...defaultConfig.ma, enabled: false },
-      } as any;
+      } as IndicatorConfig;
 
       rerender(
         <TechnicalIndicatorConfig

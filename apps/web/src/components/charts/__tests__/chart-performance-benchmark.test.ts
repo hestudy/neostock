@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PerformanceMonitor } from '../../../lib/chart-performance-optimization';
 import { MemoryManager } from '../../../lib/memory-management';
+import type { ChartInstance } from '../../../types/charts';
 
 // 导入测试设置
 import '../../test-setup';
@@ -455,14 +456,14 @@ describe('Chart Performance Benchmark - 图表性能基准测试', () => {
         
         // 模拟图表实例注册
         const mockChartInstance = {
-          chart: {} as any,
+          chart: {},
           candlestickSeries: null,
           volumeSeries: null,
           maSeries: new Map(),
           macdSeries: {},
           rsiSeries: new Map()
-        } as any;
-        memoryManager.registerChartInstance(mockChartInstance);
+        };
+        memoryManager.registerChartInstance(mockChartInstance as unknown as ChartInstance);
         
         // 注意：内存管理器会自动清理，不需要手动调用
       }

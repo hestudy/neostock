@@ -604,7 +604,7 @@ describe('MultiIndicatorKLineChart - 多指标K线图表', () => {
           low: 200,
           close: 'invalid',
           volume: -1000
-        } as any
+        } as unknown as ChartDataPoint
       ] as ChartDataPoint[];
 
       const { container } = render(
@@ -629,7 +629,7 @@ describe('MultiIndicatorKLineChart - 多指标K线图表', () => {
           time: '2024-01-01',
           ma5: 101
           // 缺失其他指标
-        } as any
+        } as unknown as ChartDataPoint
       ] as TechnicalIndicatorData[];
 
       const { container } = render(

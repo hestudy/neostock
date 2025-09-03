@@ -314,7 +314,7 @@ export class PerformanceMonitor {
     overall: boolean;
     metrics: Record<string, {
       healthy: boolean;
-      stats: any;
+      stats: unknown;
       threshold: number;
     }>;
   } {
@@ -322,7 +322,7 @@ export class PerformanceMonitor {
       overall: boolean;
       metrics: Record<string, {
         healthy: boolean;
-        stats: any;
+        stats: unknown;
         threshold: number;
       }>;
     } = {

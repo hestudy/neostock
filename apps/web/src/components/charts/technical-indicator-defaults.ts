@@ -1,5 +1,7 @@
 import type { IndicatorConfig } from './technical-indicator-config';
 
+export type { IndicatorConfig };
+
 // 获取默认配置
 export function getDefaultConfig(): IndicatorConfig {
   return {

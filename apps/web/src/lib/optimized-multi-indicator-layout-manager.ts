@@ -1,4 +1,4 @@
-import type { ChartInstance, TechnicalIndicatorConfig, TechnicalIndicatorData, PerformanceMetrics as ChartPerformanceMetrics } from '../types/charts';
+import type { ChartInstance, TechnicalIndicatorConfig, TechnicalIndicatorData, PerformanceMetrics as ChartPerformanceMetrics, ChartDataPoint } from '../types/charts';
 import { MultiIndicatorLayoutManager, type MultiIndicatorLayoutConfig } from './multi-indicator-layout-manager';
 import { DataVirtualizationManager, PerformanceMonitor, SmartCacheManager, type VirtualizationConfig } from './chart-performance-optimization';
 import { MemoryManager, type MemoryConfig } from './memory-management';
@@ -299,7 +299,7 @@ export class OptimizedMultiIndicatorLayoutManager extends MultiIndicatorLayoutMa
    */
   setFullData(data: unknown[], indicators: TechnicalIndicatorData[] = []): void {
     if (this.optimizedConfig.virtualization?.enabled) {
-      this.virtualizationManager.setFullData(data as any, indicators);
+      this.virtualizationManager.setFullData(data as ChartDataPoint[], indicators);
     }
   }
 
@@ -317,21 +317,21 @@ export class OptimizedMultiIndicatorLayoutManager extends MultiIndicatorLayoutMa
   /**
    * 获取性能指标
    */
-  getPerformanceMetrics(): PerformanceMetrics {
+  getPerformanceMetrics(): ChartPerformanceMetrics {
     const renderStats = this.performanceMonitor.getStats('renderTime');
     const processingStats = this.performanceMonitor.getStats('dataProcessingTime');
     const cacheStats = this.cacheManager.getStats();
 
     return {
       renderTime: renderStats?.average || 0,
-      memoryUsage: (performance as any).memory ? (performance as any).memory.usedJSHeapSize : 0,
+      memoryUsage: (performance as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0,
       fps: 60, // 默认fps值
       cacheHitRate: cacheStats.hitRate,
       visibleIndicators: this.getLayoutInfo().length,
       totalIndicators: this.optimizedConfig.maxVisibleIndicators,
       dataProcessingTime: processingStats?.average || 0,
       layoutCalculationTime: 0, // 需要实际测量
-    } as any;
+    } as ChartPerformanceMetrics;
   }
 
   /**
@@ -339,7 +339,8 @@ export class OptimizedMultiIndicatorLayoutManager extends MultiIndicatorLayoutMa
    */
   getPerformanceReport(): {
     healthy: boolean;
-    metrics: PerformanceMetrics;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metrics: any;
     recommendations: string[];
   } {
     const metrics = this.getPerformanceMetrics();
@@ -490,7 +491,7 @@ export class OptimizedMultiIndicatorLayoutManager extends MultiIndicatorLayoutMa
         }
         
         // 执行内存清理
-        (this.memoryManager as any).performCleanup();
+        this.memoryManager.performCleanup();
       }
     } catch (error) {
       console.error('Memory optimization failed:', error);

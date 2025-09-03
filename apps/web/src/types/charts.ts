@@ -1,4 +1,5 @@
 // Lightweight Charts TypeScript 类型定义
+import { LineStyle } from 'lightweight-charts';
 export interface IChartApi {
   applyOptions(options: Partial<ChartOptions>): void;
   options(): ChartOptions;
@@ -341,7 +342,6 @@ export interface BaselineSeriesOptions {
   bottomFillColor2?: string;
 }
 
-export type LineStyle = 0 | 1 | 2 | 3 | 4; // Solid, Dotted, Dashed, LargeDashed, SparseDotted
 export type LineType = 0 | 1 | 2; // Simple, WithSteps, Curved
 
 export interface PriceFormat {
@@ -729,6 +729,8 @@ export interface PerformanceMetrics {
   cacheHitRate?: number;
   visibleIndicators?: number;
   totalIndicators?: number;
+  dataProcessingTime?: number;
+  layoutCalculationTime?: number;
 }
 
 // 颜色类型
@@ -739,12 +741,12 @@ export const defaultChartThemes: Record<ChartTheme, ChartThemeConfig> = {
   light: {
     background: '#ffffff',
     grid: {
-      vertLines: { color: '#e0e0e0', style: 0 as any },
-      horzLines: { color: '#e0e0e0', style: 0 as any },
+      vertLines: { color: '#e0e0e0', style: LineStyle.Solid },
+      horzLines: { color: '#e0e0e0', style: LineStyle.Solid },
     },
     crosshair: {
-      vertLine: { color: '#758696', style: 3 as any },
-      horzLine: { color: '#758696', style: 3 as any },
+      vertLine: { color: '#758696', style: LineStyle.Dashed },
+      horzLine: { color: '#758696', style: LineStyle.Dashed },
     },
     watermark: { color: 'rgba(0, 0, 0, 0.1)' },
     candlestick: {
@@ -775,12 +777,12 @@ export const defaultChartThemes: Record<ChartTheme, ChartThemeConfig> = {
   dark: {
     background: '#1a1a1a',
     grid: {
-      vertLines: { color: '#2a2a2a', style: 0 as any },
-      horzLines: { color: '#2a2a2a', style: 0 as any },
+      vertLines: { color: '#2a2a2a', style: LineStyle.Solid },
+      horzLines: { color: '#2a2a2a', style: LineStyle.Solid },
     },
     crosshair: {
-      vertLine: { color: '#758696', style: 3 as any },
-      horzLine: { color: '#758696', style: 3 as any },
+      vertLine: { color: '#758696', style: LineStyle.Dashed },
+      horzLine: { color: '#758696', style: LineStyle.Dashed },
     },
     watermark: { color: 'rgba(255, 255, 255, 0.1)' },
     candlestick: {

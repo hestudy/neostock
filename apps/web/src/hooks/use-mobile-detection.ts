@@ -1,30 +1,18 @@
 import { useState, useEffect } from 'react';
 
-interface NavigatorWithMS extends Navigator {
-  msMaxTouchPoints?: number;
+interface NetworkInformation {
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
 }
 
-interface NavigatorWithConnection extends Navigator {
-  connection?: {
-    effectiveType?: string;
-    downlink?: number;
-    rtt?: number;
-    addEventListener?: (type: string, listener: () => void) => void;
-    removeEventListener?: (type: string, listener: () => void) => void;
-  };
-}
-
-interface DeviceMemoryAPI {
+interface MemoryInfo {
   deviceMemory?: number;
-}
-
-interface DeviceWithMemory extends DeviceMemoryAPI {
-  memory?: {
-    deviceMemory?: number;
-    totalJSHeapSize?: number;
-    usedJSHeapSize?: number;
-    jsHeapSizeLimit?: number;
-  };
+  totalJSHeapSize?: number;
+  usedJSHeapSize?: number;
+  jsHeapSizeLimit?: number;
 }
 
 interface MemoryInfo {
@@ -52,7 +40,7 @@ export function useMobileDetection() {
       // 检测触摸设备
       const hasTouch = 'ontouchstart' in window || 
                       navigator.maxTouchPoints > 0 || 
-                      (navigator as any).msMaxTouchPoints > 0;
+                      ((navigator as { msMaxTouchPoints?: number }).msMaxTouchPoints || 0) > 0;
       
       // 检测移动设备
       const userAgent = navigator.userAgent.toLowerCase();
@@ -107,7 +95,7 @@ export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
-  const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
+  const [connectionType] = useState<ConnectionType | null>(null);
   const [effectiveType, setEffectiveType] = useState<EffectiveConnectionType | null>(null);
 
   useEffect(() => {
@@ -118,7 +106,7 @@ export function useNetworkStatus() {
     window.addEventListener('offline', handleOffline);
 
     // 检测网络连接信息
-    const connection = (navigator as any).connection;
+    const connection = (navigator as { connection?: NetworkInformation }).connection;
     if (connection) {
       const handleConnectionChange = () => {
         setEffectiveType(connection.effectiveType as EffectiveConnectionType || null);
@@ -168,8 +156,9 @@ export function useDevicePerformance() {
       setIsLowEndDevice(isLowEnd);
 
       // 获取内存信息（如果可用）
-      if ((navigator as any).memory) {
-        const memory = (navigator as any).memory as MemoryInfo;
+      const navigatorWithMemory = navigator as { memory?: MemoryInfo };
+      if (navigatorWithMemory.memory) {
+        const memory = navigatorWithMemory.memory;
         setMemoryInfo(memory);
       }
     };
